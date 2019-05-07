@@ -1056,10 +1056,11 @@ void MuonPathAnalyzerPerSL::analyze(MuonPath *inMPath, std::vector<metaPrimitive
 	    if(debug) std::cout<<"DTp2:analyze \t\t\t\t\t\t\t\t  done pushing back metaprimitive no HIGHQ or HIGHQGHOST"<<std::endl;
 	  }				
 	}
+	delete mpAux;
       }
       else{
 	if(debug) std::cout<<"DTp2:analyze \t\t\t\t\t\t\t\t  latQuality[i].valid and (((mpAux->getQuality()==HIGHQ or mpAux->getQuality()==HIGHQGHOST) and latQuality[i].quality==HIGHQ) or  ((mpAux->getQuality() == LOWQ or mpAux->getQuality()==LOWQGHOST) and latQuality[i].quality==LOWQ)) not passed"<<std::endl;
-      }
+      }      
     }
     
     if(chi2_jm_tanPhi!=999){//
@@ -1087,7 +1088,7 @@ void MuonPathAnalyzerPerSL::analyze(MuonPath *inMPath, std::vector<metaPrimitive
 //      outMPath.push_back(std::move(mpAux));
     }
   }
-  //  delete mpAux;
+  delete mPath;
   if(debug) std::cout<<"DTp2:analyze \t\t\t\t finishes"<<std::endl;
 }
 

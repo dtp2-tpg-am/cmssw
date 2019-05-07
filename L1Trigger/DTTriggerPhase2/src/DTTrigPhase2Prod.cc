@@ -514,7 +514,7 @@ void DTTrigPhase2Prod::produce(Event & iEvent, const EventSetup& iEventSetup){
   if(debug) std::cout<<"filling NmetaPrimtives"<<std::endl;
   
   if(pinta) NmetaPrimitives->Fill(metaPrimitives.size());
-  /*  for (unsigned int i=0; i<metaPrimitives.size(); i++) {
+  for (unsigned int i=0; i<metaPrimitives.size(); i++) {
   cout << " SFG metaprimitives:  " 
        << metaPrimitives.at(i).t0 << " " 
        << metaPrimitives.at(i).x << " " 
@@ -524,7 +524,7 @@ void DTTrigPhase2Prod::produce(Event & iEvent, const EventSetup& iEventSetup){
        << metaPrimitives.at(i).quality << " " 
        << endl;
   }
-  */
+
   if(debug) std::cout<<"deleting muonpaths"<<std::endl;     
   for (unsigned int i=0; i<muonpaths.size(); i++){
     delete muonpaths[i];
