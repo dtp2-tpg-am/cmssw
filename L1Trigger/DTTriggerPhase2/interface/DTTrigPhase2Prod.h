@@ -196,7 +196,7 @@ class DTTrigPhase2Prod: public edm::EDProducer{
     double minx_match_2digis;
     int min_phinhits_match_segment;
     bool do_correlation;
-    bool p2_df;
+    int  p2_df;
     bool filter_primos;
 
     // txt ttrig flag

@@ -7,8 +7,8 @@
 #include "L1TriggerConfig/DTTPGConfig/interface/DTConfigManagerRcd.h"
 #include "L1Trigger/DTSectorCollector/interface/DTSectCollPhSegm.h"
 #include "L1Trigger/DTSectorCollector/interface/DTSectCollThSegm.h"
-#include "Phase2L1DTDigi/L1DTTrackFinder/interface/L1MuDTChambContainer.h"
-#include "Phase2L1DTDigi/L1DTTrackFinder/interface/L1MuDTChambDigi.h"
+#include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhContainer.h"
+#include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhDigi.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1MuDTChambPhContainer.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1MuDTChambPhDigi.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1MuDTChambThContainer.h"
@@ -86,6 +86,7 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset):
     produces<L1MuDTChambContainer>();
     produces<L1MuDTChambPhContainer>();
     produces<L1MuDTChambThContainer>();
+    produces<L1Phase2MuDTPhContainer>();
     
     debug = pset.getUntrackedParameter<bool>("debug");
     pinta = pset.getUntrackedParameter<bool>("pinta");
@@ -96,7 +97,7 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset):
     minx_match_2digis = pset.getUntrackedParameter<double>("minx_match_2digis");
 
     do_correlation = pset.getUntrackedParameter<bool>("do_correlation");
-    p2_df = pset.getUntrackedParameter<bool>("p2_df");
+    p2_df = pset.getUntrackedParameter<int>("p2_df");
     filter_primos = pset.getUntrackedParameter<bool>("filter_primos");
     
     txt_ttrig_bc0 = pset.getUntrackedParameter<bool>("apply_txt_ttrig_bc0");
@@ -514,16 +515,16 @@ void DTTrigPhase2Prod::produce(Event & iEvent, const EventSetup& iEventSetup){
   if(debug) std::cout<<"filling NmetaPrimtives"<<std::endl;
   
   if(pinta) NmetaPrimitives->Fill(metaPrimitives.size());
-  for (unsigned int i=0; i<metaPrimitives.size(); i++) {
-  cout << " SFG metaprimitives:  " 
-       << metaPrimitives.at(i).t0 << " " 
-       << metaPrimitives.at(i).x << " " 
-       << metaPrimitives.at(i).tanPhi << " " 
-       << metaPrimitives.at(i).phi << " " 
-       << metaPrimitives.at(i).phiB << " " 
-       << metaPrimitives.at(i).quality << " " 
-       << endl;
-  }
+//  for (unsigned int i=0; i<metaPrimitives.size(); i++) {
+//  cout << " SFG metaprimitives:  " 
+//       << metaPrimitives.at(i).t0 << " " 
+//       << metaPrimitives.at(i).x << " " 
+//       << metaPrimitives.at(i).tanPhi << " " 
+//       << metaPrimitives.at(i).phi << " " 
+//       << metaPrimitives.at(i).phiB << " " 
+//       << metaPrimitives.at(i).quality << " " 
+//       << endl;
+//  }
 
   if(debug) std::cout<<"deleting muonpaths"<<std::endl;     
   for (unsigned int i=0; i<muonpaths.size(); i++){
@@ -602,7 +603,7 @@ void DTTrigPhase2Prod::produce(Event & iEvent, const EventSetup& iEventSetup){
 	    filteredMetaPrimitives.push_back(metaPrimitives[i]); 
 	}
     }
-    
+
     metaPrimitives.clear();
     metaPrimitives.erase(metaPrimitives.begin(),metaPrimitives.end());
 
@@ -614,6 +615,7 @@ void DTTrigPhase2Prod::produce(Event & iEvent, const EventSetup& iEventSetup){
 	if(debug) std::cout<<"DTp2 in event:"<<iEvent.id().event()<<" we found "<<filteredMetaPrimitives.size()<<" filteredMetaPrimitives (superlayer)"<<std::endl;
 	vector<L1MuDTChambPhDigi> outPhi;
 	vector<L1MuDTChambDigi> outP2;
+	vector<L1Phase2MuDTPhDigi> outP2Ph;
 	for (auto metaPrimitiveIt = filteredMetaPrimitives.begin(); metaPrimitiveIt != filteredMetaPrimitives.end(); ++metaPrimitiveIt){
 	    DTSuperLayerId slId((*metaPrimitiveIt).rawId);
 	    if(debug) std::cout<<"looping in final vector: SuperLayerId"<<slId<<" x="<<(*metaPrimitiveIt).x<<" quality="<<(*metaPrimitiveIt).quality<<std::endl;
@@ -622,51 +624,75 @@ void DTTrigPhase2Prod::produce(Event & iEvent, const EventSetup& iEventSetup){
 	    if(sectorTP==13) sectorTP=4;
 	    if(sectorTP==14) sectorTP=10;
 	    sectorTP=sectorTP-1;
-	  
-	    if(!p2_df){
-		outPhi.push_back(L1MuDTChambPhDigi((*metaPrimitiveIt).t0,
-						   slId.wheel(),
-						   sectorTP,
-						   slId.station(),
-						   (int)round((*metaPrimitiveIt).phi*65536./0.8),
-						   (int)round((*metaPrimitiveIt).phiB*2048./1.4),
-						   (*metaPrimitiveIt).quality,
-						   1,
-						   0
+	    
+	    switch(p2_df){ 
+	    case 0:
+	      outPhi.push_back(L1MuDTChambPhDigi((*metaPrimitiveIt).t0,
+						 slId.wheel(),
+						 sectorTP,
+						 slId.station(),
+						 (int)round((*metaPrimitiveIt).phi*65536./0.8),
+						 (int)round((*metaPrimitiveIt).phiB*2048./1.4),
+						 (*metaPrimitiveIt).quality,
+						 1,
+						 0
+						 ));
+	    case 1:
+	      if(debug)std::cout<<"pushing back phase-2 dataformat agreement with Oscar for comparison with slice test"<<std::endl;
+	      outP2.push_back(L1MuDTChambDigi((int)round((*metaPrimitiveIt).t0/25.),   // ubx (m_bx) //bx en la orbita
+					      slId.wheel(),   // uwh (m_wheel) 
+					      slId.sector(),   // usc (m_sector)
+					      slId.station(),   // ust (m_station)
+					      (int)round((*metaPrimitiveIt).x*1000),   // uphi (_phiAngle)
+					      (int)round((*metaPrimitiveIt).tanPhi*4096),   // uphib (m_phiBending)
+					      0,   // uz (m_zCoordinate)
+					      0,   // uzsl (m_zSlope)
+					      (*metaPrimitiveIt).quality,  // uqua (m_qualityCode)
+					      0,  // uind (m_segmentIndex)
+					      (int)round((*metaPrimitiveIt).t0),  // ut0 (m_t0Segment)
+					      (int)round((*metaPrimitiveIt).chi2),  // uchi2 (m_chi2Segment)
+					      -10    // urpc (m_rpcFlag)
+					      ));
+	    case 2:
+	      if(debug)std::cout<<"pushing back phase-2 dataformat carlo-federica dataformat"<<std::endl;
+	      
+	      outP2Ph.push_back(L1Phase2MuDTPhDigi((int)round((*metaPrimitiveIt).t0/25.),   // ubx (m_bx) //bx en la orbita
+						   slId.wheel(),   // uwh (m_wheel)     // FIXME: It is not clear who provides this?
+						   sectorTP,   // usc (m_sector)    // FIXME: It is not clear who provides this?
+						   slId.station(),   // ust (m_station)
+						   (int)round((*metaPrimitiveIt).phi*65536./0.8), // uphi (_phiAngle)
+						   (int)round((*metaPrimitiveIt).phiB*2048./1.4), // uphib (m_phiBending)
+						   (*metaPrimitiveIt).quality,  // uqua (m_qualityCode)
+						   0,  // uind (m_segmentIndex)
+						   (int)round((*metaPrimitiveIt).t0),  // ut0 (m_t0Segment)
+						   (int)round((*metaPrimitiveIt).chi2),  // uchi2 (m_chi2Segment)
+						   -10    // urpc (m_rpcFlag)
 						   ));
-	    }else{
-		if(debug)std::cout<<"pushing back phase-2 dataformat agreement with Oscar for comparison with slice test"<<std::endl;
-
-		outP2.push_back(L1MuDTChambDigi((int)round((*metaPrimitiveIt).t0/25.),   // ubx (m_bx) //bx en la orbita
-						slId.wheel(),   // uwh (m_wheel)     // FIXME: It is not clear who provides this?
-						slId.sector(),   // usc (m_sector)    // FIXME: It is not clear who provides this?
-						slId.station(),   // ust (m_station)
-						(int)round((*metaPrimitiveIt).x*1000),   // uphi (_phiAngle)
-						(int)round((*metaPrimitiveIt).tanPhi*4096),   // uphib (m_phiBending)
-						0,   // uz (m_zCoordinate)
-						0,   // uzsl (m_zSlope)
-						(*metaPrimitiveIt).quality,  // uqua (m_qualityCode)
-						0,  // uind (m_segmentIndex)
-						(int)round((*metaPrimitiveIt).t0),  // ut0 (m_t0Segment)
-						(int)round((*metaPrimitiveIt).chi2),  // uchi2 (m_chi2Segment)
-						-10    // urpc (m_rpcFlag)
-						));
+	    default: 
+	      cout << "That phase2df isn't valid, empty collection"<<endl;
 	    }  
 	}		
-		    
-	if(!p2_df){
-	    std::unique_ptr<L1MuDTChambPhContainer> resultPhi (new L1MuDTChambPhContainer);
-	    resultPhi->setContainer(outPhi); iEvent.put(std::move(resultPhi));
-	    outPhi.clear();
-	    outPhi.erase(outPhi.begin(),outPhi.end());
-	}else{
-	    std::unique_ptr<L1MuDTChambContainer> resultP2 (new L1MuDTChambContainer);
-	    resultP2->setContainer(outP2); iEvent.put(std::move(resultP2));
-	    outP2.clear();
-	    outP2.erase(outP2.begin(),outP2.end());
+	if(p2_df==0){
+	  std::unique_ptr<L1MuDTChambPhContainer> resultPhi (new L1MuDTChambPhContainer);
+	  resultPhi->setContainer(outPhi); iEvent.put(std::move(resultPhi));
+	  outPhi.clear();
+	  outPhi.erase(outPhi.begin(),outPhi.end());
 	}
-    }else{
-	//Silvia's code for correlationg filteredMetaPrimitives
+	else if(p2_df==1){
+	  std::unique_ptr<L1MuDTChambContainer> resultP2 (new L1MuDTChambContainer);
+	  resultP2->setContainer(outP2); iEvent.put(std::move(resultP2));
+	  outP2.clear();
+	  outP2.erase(outP2.begin(),outP2.end());
+	}
+	else if(p2_df==2){
+	  std::unique_ptr<L1Phase2MuDTPhContainer> resultP2Ph (new L1Phase2MuDTPhContainer);
+	  resultP2Ph->setContainer(outP2Ph); iEvent.put(std::move(resultP2Ph));
+	  outP2Ph.clear();
+	  outP2Ph.erase(outP2Ph.begin(),outP2Ph.end());
+	}
+    }
+    else{
+        //Silvia's code for correlationg filteredMetaPrimitives
 	
 	if(debug) std::cout<<"starting correlation"<<std::endl;
 	
@@ -960,6 +986,7 @@ void DTTrigPhase2Prod::produce(Event & iEvent, const EventSetup& iEventSetup){
 	
 	vector<L1MuDTChambPhDigi> outPhiCH;
 	vector<L1MuDTChambDigi> outP2CH;
+	vector<L1Phase2MuDTPhDigi> outP2PhCH;
 	
 	//vector<L1MuDTChambThDigi> outThetaCH;
 	for (auto metaPrimitiveIt = correlatedMetaPrimitives.begin(); metaPrimitiveIt != correlatedMetaPrimitives.end(); ++metaPrimitiveIt){
@@ -1000,42 +1027,65 @@ void DTTrigPhase2Prod::produce(Event & iEvent, const EventSetup& iEventSetup){
 		if(debug)std::cout<<"back:(psi,psi_back)= "<<TMath::ATan((*metaPrimitiveIt).tanPhi)<<","<<psi_back<<std::endl;
 	    }
 
-	    
-	    if(!p2_df){
-		outPhiCH.push_back(thisTP);
-	    }else{
-		if(debug)std::cout<<"pushing back phase-2 dataformat"<<std::endl;
-		
-		outP2CH.push_back(L1MuDTChambDigi((int)round((*metaPrimitiveIt).t0/25.),
-						  chId.wheel(),
-						  sectorTP,
-						  chId.station(),
-						  (int)round((*metaPrimitiveIt).phi*65536./0.8),
-						  (int)round((*metaPrimitiveIt).phiB*2048./1.4),
-						  0,
-						  0,
-						  (*metaPrimitiveIt).quality,
-						  0,
-						  (int)round((*metaPrimitiveIt).t0),
-						  (int)round((*metaPrimitiveIt).chi2),
-						  -10
-						  ));
-
-		
+	    switch(p2_df){
+	    case 0:
+	      outPhiCH.push_back(thisTP);
+	    case 1:
+	      if(debug)std::cout<<"pushing back phase-2 dataformat"<<std::endl;
+	      
+	      outP2CH.push_back(L1MuDTChambDigi((int)round((*metaPrimitiveIt).t0/25.),
+						chId.wheel(),
+						sectorTP,
+						chId.station(),
+						(int)round((*metaPrimitiveIt).phi*65536./0.8),
+						(int)round((*metaPrimitiveIt).phiB*2048./1.4),
+						0,
+						0,
+						(*metaPrimitiveIt).quality,
+						0,
+						(int)round((*metaPrimitiveIt).t0),
+						(int)round((*metaPrimitiveIt).chi2),
+						-10
+						));
+	    case 2:
+	      if(debug)std::cout<<"pushing back carlo-federica dataformat"<<std::endl;
+	      
+	      outP2PhCH.push_back(L1Phase2MuDTPhDigi((int)round((*metaPrimitiveIt).t0/25.),
+						     chId.wheel(),
+						     sectorTP,
+						     chId.station(),
+						     (int)round((*metaPrimitiveIt).phi*65536./0.8),
+						     (int)round((*metaPrimitiveIt).phiB*2048./1.4),
+						     (*metaPrimitiveIt).quality,
+						     0,
+						     (int)round((*metaPrimitiveIt).t0),
+						     (int)round((*metaPrimitiveIt).chi2),
+						     -10
+						     ));
+	    default:
+	      cout << "That phase2df isn't valid, empty collection"<<endl;
+	      
 	    }
 	}
   
-	if(!p2_df){
-	    std::unique_ptr<L1MuDTChambPhContainer> resultPhiCH (new L1MuDTChambPhContainer);
-	    resultPhiCH->setContainer(outPhiCH); iEvent.put(std::move(resultPhiCH));
-  	    outPhiCH.clear();
-	    outPhiCH.erase(outPhiCH.begin(),outPhiCH.end());
-	}else{
-	    if(debug)std::cout<<"Writing in phase-2 data format for correlated metaPrimitives to do later for KM guys"<<std::endl;
-	    std::unique_ptr<L1MuDTChambContainer> resultP2CH (new L1MuDTChambContainer);
-	    resultP2CH->setContainer(outP2CH); iEvent.put(std::move(resultP2CH));
-  	    outP2CH.clear();
-	    outP2CH.erase(outP2CH.begin(),outP2CH.end());
+	if(p2_df==0){ 
+	  std::unique_ptr<L1MuDTChambPhContainer> resultPhiCH (new L1MuDTChambPhContainer);
+	  resultPhiCH->setContainer(outPhiCH); iEvent.put(std::move(resultPhiCH));
+	  outPhiCH.clear();
+	  outPhiCH.erase(outPhiCH.begin(),outPhiCH.end());
+	}
+	else if (p2_df==1){
+	  if(debug)std::cout<<"Writing in phase-2 data format for correlated metaPrimitives to do later for KM guys"<<std::endl;
+	  std::unique_ptr<L1MuDTChambContainer> resultP2CH (new L1MuDTChambContainer);
+	  resultP2CH->setContainer(outP2CH); iEvent.put(std::move(resultP2CH));
+	  outP2CH.clear();
+	  outP2CH.erase(outP2CH.begin(),outP2CH.end());
+	}
+	else if(p2_df==2){
+	  std::unique_ptr<L1Phase2MuDTPhContainer> resultP2PhCH (new L1Phase2MuDTPhContainer);
+	  resultP2PhCH->setContainer(outP2PhCH); iEvent.put(std::move(resultP2PhCH));
+	  outP2PhCH.clear();
+	  outP2PhCH.erase(outP2PhCH.begin(),outP2PhCH.end());
 	}
 	
 	
