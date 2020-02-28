@@ -401,7 +401,11 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
 			int best_lat=-1;
 			int next_lat=-1;
 			int lat=-1;
-			
+	
+      if (debug) cout << "Trying to confirm primitive with hits " <<
+              SL3metaPrimitive->wi1 << " " << SL3metaPrimitive->wi2 << " " << SL3metaPrimitive->wi3 << " " << SL3metaPrimitive->wi4 << " " <<
+              SL3metaPrimitive->tdc1 << " " << SL3metaPrimitive->tdc2 << " " << SL3metaPrimitive->tdc3 << " " << SL3metaPrimitive->tdc4 << " " <<               endl;
+
 			for (auto dtLayerId_It=dtdigis->begin(); dtLayerId_It!=dtdigis->end(); ++dtLayerId_It){
 			    const DTLayerId dtLId = (*dtLayerId_It).first;
 			    DTSuperLayerId dtSLId(dtLId);
@@ -422,6 +426,9 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
 				    lat=0;
 				}
 				if(fabs(x_inSL1-x_wire)<minx){
+
+            if (debug) cout << "Best confirmation with hit " << (*digiIt).wire() << " " << (*digiIt).time() << "; DeltaX=" << fabs(x_inSL1-x_wire) << " while minx=" << minx << " and min2x=" << min2x << endl;
+
 				    minx=fabs(x_inSL1-x_wire);
 				    next_wire=best_wire;
 				    next_tdc=best_tdc;
@@ -432,13 +439,15 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
 				    best_tdc=(*digiIt).time();
 				    best_layer=dtLId.layer();
 				    best_lat=lat;
+
 				    matched_digis++;
-				} else if((fabs(x_inSL1-x_wire)>=minx)&&(fabs(x_inSL1-x_wire<min2x))){
+				} else if((fabs(x_inSL1-x_wire)>=minx)&&(fabs(x_inSL1-x_wire)<min2x)){
+            if (debug) cout << "2nd best confirmation with hit " << (*digiIt).wire() << " " << (*digiIt).time() << "; DeltaX=" << fabs(x_inSL1-x_wire) << " while minx=" << minx << " and min2x=" << min2x << endl;
 				    minx=fabs(x_inSL1-x_wire);
-                                    next_wire=(*digiIt).wire();
-                                    next_tdc=(*digiIt).time();
-                                    next_layer=dtLId.layer();
-                                    next_lat=lat;
+            next_wire=(*digiIt).wire();
+            next_tdc=(*digiIt).time();
+            next_layer=dtLId.layer();
+            next_lat=lat;
 				    matched_digis++;
 				}
 			    }
