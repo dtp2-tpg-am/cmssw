@@ -14,10 +14,6 @@
 #include "Geometry/DTGeometry/interface/DTGeometry.h"
 #include "Geometry/DTGeometry/interface/DTLayer.h"
 
-#include "TFile.h"
-#include "TH1F.h"
-#include "TH2F.h"
-
 #include "L1Trigger/DTTriggerPhase2/interface/muonpath.h"
 #include "L1Trigger/DTTriggerPhase2/interface/analtypedefs.h"
 #include "L1Trigger/DTTriggerPhase2/interface/constants.h"
@@ -50,6 +46,8 @@
 #include "DataFormats/DTDigi/interface/DTDigiCollection.h"
 #include "DataFormats/DTRecHit/interface/DTRecSegment4DCollection.h"
 #include "DataFormats/DTRecHit/interface/DTRecSegment2DCollection.h"
+#include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTExtPhContainer.h"
+#include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTExtPhDigi.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhContainer.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhDigi.h"
 
@@ -106,10 +104,9 @@ public:
   void setChiSquareThreshold(float ch2Thr);
   void setMinimumQuality(MP_QUALITY q);
 
-  // data-members 
+  // data-members
   edm::ESHandle<DTGeometry> dtGeo_;
   std::vector<std::pair<int, MuonPath>> primitives_;
-
 
 private:
   // Trigger Configuration Manager CCB validity flag
@@ -121,6 +118,7 @@ private:
   // Debug Flag
   bool debug_;
   bool dump_;
+  bool dumpMPsToFile_;
   double dT0_correlate_TP_;
   bool do_correlation_;
   int scenario_;
@@ -151,7 +149,7 @@ private:
                    std::vector<std::queue<std::pair<DTLayerId*, DTDigi*>>*>& vec);
 
   // RPC
-  RPCIntegrator* rpc_integrator_;
+  //  RPCIntegrator* rpc_integrator_;
   bool useRPC_;
 
   void assignIndex(std::vector<metaPrimitive>& inMPaths);

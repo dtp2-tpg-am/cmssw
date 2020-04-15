@@ -43,10 +43,15 @@ L1Phase2MuDTPhDigi::L1Phase2MuDTPhDigi()
       m_index(0),
       m_t0(0),
       m_chi2(0),
-      m_rpcFlag(-10) {}
+      m_rpcFlag(-10) {
+  for (int i=0; i<8; i++) {
+    m_pathWireId[i] = -1;
+    m_pathTDC[i] = -1;
+    m_pathLat[i] = 2;
+  }
+}
 
-L1Phase2MuDTPhDigi::L1Phase2MuDTPhDigi(
-    int bx, int wh, int sc, int st, int sl, int phi, int phib, int qual, int idx, int t0, int chi2, int rpc)
+L1Phase2MuDTPhDigi::L1Phase2MuDTPhDigi(int bx, int wh, int sc, int st, int sl, int phi, int phib, int qual, int idx, int t0, int chi2, int rpc, int wireId[8], int tdc[8],int lat[8])
     : m_bx(bx),
       m_wheel(wh),
       m_sector(sc),
@@ -58,7 +63,15 @@ L1Phase2MuDTPhDigi::L1Phase2MuDTPhDigi(
       m_index(idx),
       m_t0(t0),
       m_chi2(chi2),
-      m_rpcFlag(rpc) {}
+      m_rpcFlag(rpc) {
+
+  for (int i=0; i<8; i++) {
+    m_pathWireId[i] = wireId[i];
+    m_pathTDC[i] = tdc[i];
+    m_pathLat[i] = lat[i];
+  }
+
+}
 
 //--------------
 // Operations --
@@ -86,3 +99,9 @@ int L1Phase2MuDTPhDigi::t0() const { return m_t0; }
 int L1Phase2MuDTPhDigi::chi2() const { return m_chi2; }
 
 int L1Phase2MuDTPhDigi::rpcFlag() const { return m_rpcFlag; }
+
+int L1Phase2MuDTPhDigi::pathWireId(int i) const { return m_pathWireId[i]; }
+
+int L1Phase2MuDTPhDigi::pathTDC(int i) const { return m_pathTDC[i]; }
+
+int L1Phase2MuDTPhDigi::pathLat(int i) const { return m_pathLat[i]; }

@@ -41,7 +41,9 @@ struct {
 // };
 
 DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset) {
-  produces<L1Phase2MuDTPhContainer>();
+  produces<L1Phase2MuDTExtPhContainer>();
+  //  produces<std::vector<metaPrimitive>>(); 
+  //  cout << "YES!"<< endl;
 
   debug_ = pset.getUntrackedParameter<bool>("debug");
   dump_ = pset.getUntrackedParameter<bool>("dump");
@@ -94,22 +96,25 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset) {
   mpathqualityenhancer_ = new MPQualityEnhancerFilter(pset);
   mpathredundantfilter_ = new MPRedundantFilter(pset);
   mpathassociator_ = new MuonPathAssociator(pset);
-  rpc_integrator_ = new RPCIntegrator(pset);
+  //  rpc_integrator_ = new RPCIntegrator(pset);
 }
 
 DTTrigPhase2Prod::~DTTrigPhase2Prod() {
-  //delete inMuonPath;
-  //delete outValidMuonPath;
-
   if (debug_)
     std::cout << "DTp2: calling destructor" << std::endl;
 
-  delete grouping_obj_;          // Grouping destructor
+  
+  //delete grouping_obj_;          // Grouping destructor
+  if (debug_)    std::cout << "DTp2: grouping destroyed" << std::endl;
+
   delete mpathanalyzer_;         // Analyzer destructor
+  if (debug_)    std::cout << "DTp2: analyzer destroyed" << std::endl;  
   delete mpathqualityenhancer_;  // Filter destructor
   delete mpathredundantfilter_;  // Filter destructor
+  if (debug_)    std::cout << "DTp2: filter destroyed" << std::endl;  
   delete mpathassociator_;       // Associator destructor
-  delete rpc_integrator_;
+  if (debug_)    std::cout << "DTp2: associator destroyed" << std::endl;  
+  //  delete rpc_integrator_;
 }
 
 void DTTrigPhase2Prod::beginRun(edm::Run const& iRun, const edm::EventSetup& iEventSetup) {
@@ -130,7 +135,6 @@ void DTTrigPhase2Prod::beginRun(edm::Run const& iRun, const edm::EventSetup& iEv
   mpathqualityenhancer_->initialise(iEventSetup);  // Filter object initialisation
   mpathredundantfilter_->initialise(iEventSetup);  // Filter object initialisation
   mpathassociator_->initialise(iEventSetup);       // Associator object initialisation
-
 }
 
 void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
@@ -274,9 +278,9 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   if (dump_) {
     for (unsigned int i = 0; i < outmpaths.size(); i++) {
       cout << iEvent.id().event() << " mp " << i << ": " << outmpaths.at(i)->bxTimeValue() << " "
-           << outmpaths.at(i)->horizPos() << " " << outmpaths.at(i)->tanPhi() << " " << outmpaths.at(i)->phi()
-           << " " << outmpaths.at(i)->phiB() << " " << outmpaths.at(i)->quality() << " "
-           << outmpaths.at(i)->chiSquare() << " " << endl;
+           << outmpaths.at(i)->horizPos() << " " << outmpaths.at(i)->tanPhi() << " " << outmpaths.at(i)->phi() << " "
+           << outmpaths.at(i)->phiB() << " " << outmpaths.at(i)->quality() << " " << outmpaths.at(i)->chiSquare() << " "
+           << endl;
     }
     for (unsigned int i = 0; i < metaPrimitives.size(); i++) {
       cout << iEvent.id().event() << " mp " << i << ": ";
@@ -326,7 +330,6 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
               << " filteredMetaPrimitives (superlayer)" << std::endl;
   if (debug_)
     std::cout << "filteredMetaPrimitives: starting correlations" << std::endl;
-
 
   /////////////////////////////////////
   //// CORRELATION:
@@ -401,22 +404,24 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     shift_back = 0;
 
   // RPC integration
-  if (useRPC_) {
-    if (debug_)       std::cout << "Start integrating RPC" << std::endl;
-    rpc_integrator_->initialise(iEventSetup, shift_back);
-    rpc_integrator_->prepareMetaPrimitives(rpcRecHits);
-    rpc_integrator_->matchWithDTAndUseRPCTime(correlatedMetaPrimitives);
-    rpc_integrator_->makeRPCOnlySegments();
-    rpc_integrator_->storeRPCSingleHits();
-    rpc_integrator_->removeRPCHitsUsed();
-  }
+//  if (useRPC_) {
+//    if (debug_)
+//      std::cout << "Start integrating RPC" << std::endl;
+//    rpc_integrator_->initialise(iEventSetup, shift_back);
+//    rpc_integrator_->prepareMetaPrimitives(rpcRecHits);
+//    rpc_integrator_->matchWithDTAndUseRPCTime(correlatedMetaPrimitives);
+//    rpc_integrator_->makeRPCOnlySegments();
+//    rpc_integrator_->storeRPCSingleHits();
+//    rpc_integrator_->removeRPCHitsUsed();
+//  }
 
   /// STORING RESULTs
 
-  vector<L1Phase2MuDTPhDigi> outP2Ph;
-
+  //  vector<L1Phase2MuDTExtPhDigi> outP2Ph;
+  vector<L1Phase2MuDTExtPhDigi> outP2Ph;
+  
   // Assigning index value
-  assignIndex(correlatedMetaPrimitives);
+  //  assignIndex(correlatedMetaPrimitives);
   for (auto metaPrimitiveIt = correlatedMetaPrimitives.begin(); metaPrimitiveIt != correlatedMetaPrimitives.end();
        ++metaPrimitiveIt) {
     DTChamberId chId((*metaPrimitiveIt).rawId);
@@ -438,35 +443,50 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       else
         sl = 3;
     }
-
+         
     if (debug_)
-      std::cout << "pushing back phase-2 dataformat carlo-federica dataformat" << std::endl;
-    outP2Ph.push_back(L1Phase2MuDTPhDigi(
-					 (int)round((*metaPrimitiveIt).t0 / 25.) - shift_back,  // ubx (m_bx) //bx en la orbita
-					 chId.wheel(),    // uwh (m_wheel)     // FIXME: It is not clear who provides this?
-					 sectorTP,        // usc (m_sector)    // FIXME: It is not clear who provides this?
-					 chId.station(),  // ust (m_station)
-					 sl,              // ust (m_station)
-					 (int)round((*metaPrimitiveIt).phi * 65536. / 0.8),    // uphi (_phiAngle)
-					 (int)round((*metaPrimitiveIt).phiB * 2048. / 1.4),    // uphib (m_phiBending)
-					 (*metaPrimitiveIt).quality,                           // uqua (m_qualityCode)
-					 (*metaPrimitiveIt).index,                             // uind (m_segmentIndex)
-					 (int)round((*metaPrimitiveIt).t0) - shift_back * 25,  // ut0 (m_t0Segment)
-					 (int)round((*metaPrimitiveIt).chi2 * 1000000),        // uchi2 (m_chi2Segment)
-					 (*metaPrimitiveIt).rpcFlag                            // urpc (m_rpcFlag)
-					 ));
+      std::cout << "pushing back phase-2 dataformat " << std::endl;
+    
+   
+    int pathWireId[8] = {(*metaPrimitiveIt).wi1,(*metaPrimitiveIt).wi2,(*metaPrimitiveIt).wi3,(*metaPrimitiveIt).wi4,
+			   (*metaPrimitiveIt).wi5,(*metaPrimitiveIt).wi6,(*metaPrimitiveIt).wi7,(*metaPrimitiveIt).wi8};
+
+    int pathTDC[8] = {(*metaPrimitiveIt).tdc1,(*metaPrimitiveIt).tdc2,(*metaPrimitiveIt).tdc3,(*metaPrimitiveIt).tdc4,
+		      (*metaPrimitiveIt).tdc5,(*metaPrimitiveIt).tdc6,(*metaPrimitiveIt).tdc7,(*metaPrimitiveIt).tdc8};
+    
+    int pathLat[8] = {(*metaPrimitiveIt).lat1,(*metaPrimitiveIt).lat2,(*metaPrimitiveIt).lat3,(*metaPrimitiveIt).lat4,
+		      (*metaPrimitiveIt).lat5,(*metaPrimitiveIt).lat6,(*metaPrimitiveIt).lat7,(*metaPrimitiveIt).lat8};
+    
+      outP2Ph.push_back(L1Phase2MuDTExtPhDigi(
+					      (int)round((*metaPrimitiveIt).t0 / 25.) - shift_back,  // ubx (m_bx) //bx en la orbita
+					      chId.wheel(),    // uwh (m_wheel)     // FIXME: It is not clear who provides this?
+					      sectorTP,        // usc (m_sector)    // FIXME: It is not clear who provides this?
+					      chId.station(),  // ust (m_station)
+					      sl,              // ust (m_station)
+					      (int)round((*metaPrimitiveIt).phi * 65536. / 0.8),    // uphi (_phiAngle)
+					      (int)round((*metaPrimitiveIt).phiB * 2048. / 1.4),    // uphib (m_phiBending)
+					      (*metaPrimitiveIt).quality,                           // uqua (m_qualityCode)
+					      (*metaPrimitiveIt).index,                             // uind (m_segmentIndex)
+					      (int)round((*metaPrimitiveIt).t0) - shift_back * 25,  // ut0 (m_t0Segment)
+					      (int)round((*metaPrimitiveIt).chi2 * 1000000),        // uchi2 (m_chi2Segment)
+					      (*metaPrimitiveIt).rpcFlag,                            // urpc (m_rpcFlag)
+					      pathWireId,
+					      pathTDC,
+					      pathLat
+					      ));
+      
   }
 
   // Storing RPC hits that were not used elsewhere
-  if (useRPC_) {
-    for (auto rpc_dt_digi = rpc_integrator_->rpcRecHits_translated_.begin();
-         rpc_dt_digi != rpc_integrator_->rpcRecHits_translated_.end();
-         rpc_dt_digi++) {
-      outP2Ph.push_back(*rpc_dt_digi);
-    }
-  }
+//  if (useRPC_) {
+//    for (auto rpc_dt_digi = rpc_integrator_->rpcRecHits_translated_.begin();
+//         rpc_dt_digi != rpc_integrator_->rpcRecHits_translated_.end();
+//         rpc_dt_digi++) {
+//      outP2Ph.push_back(*rpc_dt_digi);
+//    }
+//  }
 
-  std::unique_ptr<L1Phase2MuDTPhContainer> resultP2Ph(new L1Phase2MuDTPhContainer);
+  std::unique_ptr<L1Phase2MuDTExtPhContainer> resultP2Ph(new L1Phase2MuDTExtPhContainer);
   resultP2Ph->setContainer(outP2Ph);
   iEvent.put(std::move(resultP2Ph));
   outP2Ph.clear();
@@ -480,7 +500,7 @@ void DTTrigPhase2Prod::endRun(edm::Run const& iRun, const edm::EventSetup& iEven
   mpathqualityenhancer_->finish();
   mpathredundantfilter_->finish();
   mpathassociator_->finish();
-  rpc_integrator_->finish();
+  //  rpc_integrator_->finish();
 };
 
 bool DTTrigPhase2Prod::outer(metaPrimitive mp) {

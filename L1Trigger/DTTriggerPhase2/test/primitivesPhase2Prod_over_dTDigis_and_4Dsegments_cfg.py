@@ -18,16 +18,18 @@ process.load("L1Trigger.DTTriggerPhase2.CalibratedDigis_cfi")
 
 #DTTriggerPhase2
 process.load("L1Trigger.DTTriggerPhase2.dtTriggerPhase2PrimitiveDigis_cfi")
-#process.dtTriggerPhase2PrimitiveDigis.trigger_with_sl = 3  #4 means SL 1 and 3
-#for the moment the part working in phase2 format is the slice test
-#process.dtTriggerPhase2PrimitiveDigis.p2_df = 0 //0 is phase1, 1 is slice test, 2 is phase2(carlo-federica)
+process.dtTriggerPhase2PrimitiveDigis.scenario = 0 #0 is mc, 1 is data, 2 is slice test
 
-process.dtTriggerPhase2PrimitiveDigis.scenario = 1 #0 is mc, 1 is data, 2 is slice test
+process.dtTriggerPhase2BayesPrimitiveDigis = process.dtTriggerPhase2PrimitiveDigis.clone()
+process.process.dtTriggerPhase2BayesPrimitiveDigis.grouping_code = 2 ## initial grouping
+
+process.dtTriggerPhase2StdPrimitiveDigis   = process.dtTriggerPhase2PrimitiveDigis.clone()
+process.dtTriggerPhase2StdPrimitiveDigis.grouping_code = 0 ## initial grouping
 
 
 process.source = cms.Source("PoolSource",fileNames = cms.untracked.vstring(
         #'file:/eos/user/c/carrillo/digis_segments_Run2016BSingleMuonRAW-RECO.root'
-        'file:/tmp/carrillo/digis_segments_Run2016BSingleMuonRAW-RECO.root'
+    '/store/mc/PhaseIITDRSpring19DR/Mu_FlatPt2to100-pythia8-gun/GEN-SIM-DIGI-RAW/PU200_106X_upgrade2023_realistic_v3-v2/70000/F42F882F-B3A8-4346-870D-3E62C930D076.root'
         )
                             )
 process.maxEvents = cms.untracked.PSet(
@@ -35,8 +37,10 @@ process.maxEvents = cms.untracked.PSet(
 )
 
 process.out = cms.OutputModule("PoolOutputModule",
-                               outputCommands = cms.untracked.vstring('keep *'),
-                               fileName = cms.untracked.string('/tmp/carrillo/DTTriggerPhase2Primitives.root')
+                               outputCommands = cms.untracked.vstring(
+                                   'keep *'
+                               ),
+                               fileName = cms.untracked.string('DTTriggerPhase2Primitives.root')
 )
 
 process.p = cms.Path(process.CalibratedDigis*process.dtTriggerPhase2PrimitiveDigis)

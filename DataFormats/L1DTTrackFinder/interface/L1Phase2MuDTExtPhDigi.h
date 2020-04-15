@@ -1,6 +1,6 @@
 //-------------------------------------------------
 //
-//   Class L1Phase2MuDTPhDigi
+//   Class L1Phase2MuDTExtPhDigi
 //
 //   Description: trigger primtive data for the
 //                muon barrel Phase2 trigger
@@ -10,8 +10,8 @@
 //
 //
 //--------------------------------------------------
-#ifndef L1Phase2MuDTPhDigi_H
-#define L1Phase2MuDTPhDigi_H
+#ifndef L1Phase2MuDTExtPhDigi_H
+#define L1Phase2MuDTExtPhDigi_H
 
 //------------------------------------
 // Collaborating Class Declarations --
@@ -29,12 +29,12 @@
 //              -- Class Interface --
 //              ---------------------
 
-class L1Phase2MuDTPhDigi {
+class L1Phase2MuDTExtPhDigi {
 public:
   //  Constructors
-  L1Phase2MuDTPhDigi();
+  L1Phase2MuDTExtPhDigi();
 
-  L1Phase2MuDTPhDigi(int bx, int wh, int sc, int st, int sl, int phi, int phib, int qual, int idx, int t0, int chi2, int rpc = -10, int wireId[8] = 0, int tdc[8]= 0,int lat[8] =0 );
+  L1Phase2MuDTExtPhDigi(int bx, int wh, int sc, int st, int sl, int phi, int phib, int qual, int idx, int t0, int chi2, int rpc = -10, int wireId[8] = 0, int tdc[8]= 0,int lat[8] =0 );
 
   // Operations
   int bxNum() const;
