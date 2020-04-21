@@ -26,6 +26,10 @@ process.CalibratedDigis.scenario = 0
 
 process.dtTriggerPhase2BayesPrimitiveDigis = process.dtTriggerPhase2PrimitiveDigis.clone()
 process.dtTriggerPhase2BayesPrimitiveDigis.grouping_code = 2 ## initial grouping
+process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.minNLayerHits = 4
+process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.minSingleSLHitsMax = 2 
+process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.minSingleSLHitsMin = 2 
+process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.minUncorrelatedHits = 3
 process.dtTriggerPhase2BayesPrimitiveDigis.dumpMPsToFile = True
 
 process.dtTriggerPhase2StdPrimitiveDigis   = process.dtTriggerPhase2PrimitiveDigis.clone()

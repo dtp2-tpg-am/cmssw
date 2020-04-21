@@ -104,7 +104,7 @@ DTTrigPhase2Prod::~DTTrigPhase2Prod() {
     std::cout << "DTp2: calling destructor" << std::endl;
 
   
-  //delete grouping_obj_;          // Grouping destructor
+  delete grouping_obj_;          // Grouping destructor
   if (debug_)    std::cout << "DTp2: grouping destroyed" << std::endl;
 
   delete mpathanalyzer_;         // Analyzer destructor
@@ -421,7 +421,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   vector<L1Phase2MuDTExtPhDigi> outP2Ph;
   
   // Assigning index value
-  //  assignIndex(correlatedMetaPrimitives);
+  assignIndex(correlatedMetaPrimitives);
   for (auto metaPrimitiveIt = correlatedMetaPrimitives.begin(); metaPrimitiveIt != correlatedMetaPrimitives.end();
        ++metaPrimitiveIt) {
     DTChamberId chId((*metaPrimitiveIt).rawId);
@@ -457,7 +457,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     int pathLat[8] = {(*metaPrimitiveIt).lat1,(*metaPrimitiveIt).lat2,(*metaPrimitiveIt).lat3,(*metaPrimitiveIt).lat4,
 		      (*metaPrimitiveIt).lat5,(*metaPrimitiveIt).lat6,(*metaPrimitiveIt).lat7,(*metaPrimitiveIt).lat8};
     
-      outP2Ph.push_back(L1Phase2MuDTExtPhDigi(
+    outP2Ph.push_back(L1Phase2MuDTExtPhDigi(
 					      (int)round((*metaPrimitiveIt).t0 / 25.) - shift_back,  // ubx (m_bx) //bx en la orbita
 					      chId.wheel(),    // uwh (m_wheel)     // FIXME: It is not clear who provides this?
 					      sectorTP,        // usc (m_sector)    // FIXME: It is not clear who provides this?
