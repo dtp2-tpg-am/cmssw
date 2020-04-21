@@ -61,15 +61,16 @@ ROOT.gROOT.SetBatch(True)
 files = ['/afs/cern.ch/user/f/folguera/workdir/Upgrade/DTTP/CMSSW_11_1_0_pre4_DTTPdev_Bayes/src/L1Trigger/DTTriggerPhase2/test/DTTriggerPhase2Primitives.root']
 
 print "Number of files: %d" % len(files)
-
-events = Events(files)
-
+events = Events(files)    
+print "we got the events" 
 ## load some histograms (and efficiencies): 
 outputDict = {} 
 dumpToFile = False
+
 for frac in [0.25,0.5,0.75,1.00]:
+    print "shared fraction is %0.2f" %(frac)
     fracname="shared%i" %(frac*100)
-    
+
     hPhiRes_q1 = []
     hPhiRes_q3 = []
     hPhiRes_q5 = []
@@ -154,9 +155,9 @@ for frac in [0.25,0.5,0.75,1.00]:
     
     if (dumpToFile): 
         f= open("EventDumpList.log","w+")
-
+    
     for ev in events:
-        if not count%1000:  print count, events.size()
+        if not count%10:  print count, events.size()
         count = count+1
         ev.getByLabel(muoBayesLabel, muoBayesHandle)
         ev.getByLabel(muoStdLabel, muoStdHandle)
@@ -182,7 +183,6 @@ for frac in [0.25,0.5,0.75,1.00]:
             st = muon1.stNum()-1
             for muon2 in muon_std: 
                 if not IsMatched(muon1,muon2,frac): continue
-
                 if (muon1.quality()>=1) :  
                     hPhiRes_q1[st]  .Fill( (muon1.phi()-muon2.phi()) )
                     hPhiBRes_q1[st] .Fill( (muon1.phiBend()-muon2.phiBend()) )
@@ -209,13 +209,12 @@ for frac in [0.25,0.5,0.75,1.00]:
                     hPhiBRes_q8[st] .Fill( (muon1.phiBend()-muon2.phiBend()) )
                     hChi2Res_q8[st] .Fill( (muon1.chi2()-muon2.chi2()) )
                     hBxRes_q8[st]   .Fill( (muon1.bxNum()-muon2.bxNum()) )
-                    hTimeRes_q8[st] .Fill( (muon1.t0()-muon2.t0()) )
-                
+                    hTimeRes_q8[st] .Fill( (muon1.t0()-muon2.t0()) )                
 
     if (dumpToFile): f.close()
     dumpToFile=False
+    ev.toBegin()
 
-        
 
 import pickle 
 with open('GroupingComparison_BayesToStd_Apr21.pickle', 'wb') as handle:

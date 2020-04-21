@@ -38,7 +38,7 @@ ROOT.gStyle.SetOptStat(0)
 with open('GroupingComparison_BayesToStd_Apr21.pickle', 'rb') as handle:
     b = pickle.load(handle)
 
-leg = ROOT.TLegend(0.6,0.6,0.85,0.26);
+leg = ROOT.TLegend(0.6,0.6,0.88,0.4);
 leg.SetTextSize(0.03);
 
 for s in ss:        
@@ -55,17 +55,27 @@ for s in ss:
 
 canvas = ROOT.CreateCanvas('name',False,True)
 
+
 for plot in plots:
     drawn = False
+    counts=0
+    disp = ROOT.TLatex()
+    disp.SetTextSize(0.025)
     for s in ss: 
         if not (drawn): 
             b[s][plot].Draw()
             drawn=True
         else:
             b[s][plot].Draw('same')            
+        
+        disp.DrawLatexNDC(0.13,0.87-counts*0.03,"#color[%d]{%s: %2.2f (%2.2f)}" %(samples[s],tags[s],b[s][plot].GetMean(),b[s][plot].GetRMS()))
+#        disp.DrawLatexNDC(0.13,0.87-counts*0.03,"%s: %2.2f (%2.2f)" %(tags[s],b[s][plot].GetMean(),b[s][plot].GetRMS()))
+        counts = counts+1
 
+    disp.Draw("same")    
     ROOT.DrawPrelimLabel(canvas)
     ROOT.DrawLumiLabel(canvas,'200 PU')
+
     leg.Draw("same")
     
     ROOT.SaveCanvas(canvas, outpath + plot)

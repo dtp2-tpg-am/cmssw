@@ -213,7 +213,8 @@ for frac in [0.25,0.5,0.75,1.00]:
                     hTimeRes_q8[st] .Fill( (muon.t0()-muon2.t0()) )
                 
 
-    f.close()
+    if (dumpToFile): f.close()
+    ev.toBegin()
     dumpToFile=False
 
         
