@@ -28,6 +28,7 @@
 #include "L1Trigger/DTTriggerPhase2/interface/PseudoBayesGrouping.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPathAnalyzer.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPathAnalyzerPerSL.h"
+#include "L1Trigger/DTTriggerPhase2/interface/MuonPathAnalyticAnalyzer.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPathAnalyzerInChamber.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPathAssociator.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MPFilter.h"
@@ -123,6 +124,7 @@ private:
   double dT0_correlate_TP_;
   bool do_correlation_;
   int scenario_;
+  bool printPython;
 
   // shift
   edm::FileInPath shift_filename_;

@@ -48,11 +48,25 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset) {
 
   do_correlation_ = pset.getUntrackedParameter<bool>("do_correlation");
 
+  printPython = pset.getUntrackedParameter<bool>("printPython");
+  
   scenario_ = pset.getUntrackedParameter<int>("scenario");
   dtDigisToken_ = consumes<DTDigiCollection>(pset.getParameter<edm::InputTag>("digiTag"));
 
   rpcRecHitsLabel_ = consumes<RPCRecHitCollection>(pset.getUntrackedParameter<edm::InputTag>("rpcRecHits"));
   useRPC_ = pset.getUntrackedParameter<bool>("useRPC");
+  uint32_t rawId;
+  shift_filename_ = pset.getParameter<edm::FileInPath>("shift_filename");
+  std::ifstream ifin3(shift_filename_.fullPath());
+  double shift;
+  if (ifin3.fail()) {
+    throw cms::Exception("Missing Input File")
+      << "DTTrigPhase2Prod::DTTrigPhase2Prod() -  Cannot find " << shift_filename_.fullPath();
+  }
+  while (ifin3.good()){
+      ifin3 >> rawId >> shift;
+      shiftinfo_[rawId]=shift;
+  }
 
   // Choosing grouping scheme:
   grcode_ = pset.getUntrackedParameter<int>("grouping_code");
@@ -72,7 +86,8 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset) {
   if (grcode_ == 0) {
     if (debug_)
       cout << "DTp2:constructor: JM analyzer" << endl;
-    mpathanalyzer_ = new MuonPathAnalyzerPerSL(pset);
+    mpathanalyzer_ = new MuonPathAnalyticAnalyzer(pset);
+    //mpathanalyzer_ = new MuonPathAnalyzerPerSL(pset);
   } else {
     cout << "++++++++++++++++++++++++++++++++++++++++++++++" << endl;
     cout << "               WARNING!!!!!                   " << endl;
@@ -416,6 +431,21 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 
   // Assigning index value
   assignIndex(correlatedMetaPrimitives);
+
+
+    if (printPython) { 
+    for (auto metaPrimitiveIt = correlatedMetaPrimitives.begin(); metaPrimitiveIt != correlatedMetaPrimitives.end(); ++metaPrimitiveIt){
+
+      DTChamberId chId((metaPrimitiveIt)->rawId);
+      DTWireId wireId1(chId,1,2,1);
+      DTWireId wireId3(chId,3,2,1);
+      if ((*metaPrimitiveIt).wi1!=-1 || (*metaPrimitiveIt).wi2!=-1) cout << (*metaPrimitiveIt).quality << " " << (*metaPrimitiveIt).x << " " << (*metaPrimitiveIt).tanPhi << " " << (int) (*metaPrimitiveIt).t0  << " "<< (*metaPrimitiveIt).chi2  << " "  << shiftinfo_[wireId1.rawId()]<<" " <<  wireId1.wheel() << " " << wireId1.sector() << " " << wireId1.station() << " " << (*metaPrimitiveIt).wi1<< " " << (*metaPrimitiveIt).wi2<< " " << (*metaPrimitiveIt).wi3<< " " << (*metaPrimitiveIt).wi4<< " " << (*metaPrimitiveIt).wi5<< " " << (*metaPrimitiveIt).wi6<< " " << (*metaPrimitiveIt).wi7<< " " << (*metaPrimitiveIt).wi8<< " " << (*metaPrimitiveIt).tdc1<< " " << (*metaPrimitiveIt).tdc2<< " " << (*metaPrimitiveIt).tdc3<< " " << (*metaPrimitiveIt).tdc4<< " " << (*metaPrimitiveIt).tdc5<< " " << (*metaPrimitiveIt).tdc6<< " " << (*metaPrimitiveIt).tdc7<< " " << (*metaPrimitiveIt).tdc8<< " " << (*metaPrimitiveIt).lat1<< " " << (*metaPrimitiveIt).lat2<< " " << (*metaPrimitiveIt).lat3<< " " << (*metaPrimitiveIt).lat4<< " " << (*metaPrimitiveIt).lat5<< " " << (*metaPrimitiveIt).lat6<< " " << (*metaPrimitiveIt).lat7<< " " << (*metaPrimitiveIt).lat8  << " " << -1 << endl;
+    }
+    cout << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1<< " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << " " << -1 << endl;
+  }
+
+
+
   for (auto metaPrimitiveIt = correlatedMetaPrimitives.begin(); metaPrimitiveIt != correlatedMetaPrimitives.end();
        ++metaPrimitiveIt) {
     DTChamberId chId((*metaPrimitiveIt).rawId);
