@@ -1335,7 +1335,7 @@ void MuonPathAnalyticAnalyzer::superlayer_datapath(MuonPath *mPath) {
 
   if (validCells < 3) return;
   int wires[4], t0s[4], valids[4], cell_horiz_layout[4];
-  for (int j = 3; j >= 0; j--) {
+  for (int j = 0; j < 4; j++) {
     if (mPath->primitive(j)->isValidTime()){
       wires[j] = mPath->primitive(j)->channelId();
       t0s[j] = mPath->primitive(j)->tdcTimeStamp();
@@ -1371,6 +1371,12 @@ void MuonPathAnalyticAnalyzer::superlayer_datapath(MuonPath *mPath) {
 
 void MuonPathAnalyticAnalyzer::segment_composer(int valids[4], int wires[4], int t0s[4], int cell_horiz_layout[4], MuonPath *mPath) {
 
+  if (debug_) cout << ">>>>DEBUG: Inside segment composer" << endl
+      << "wires[0]:" << wires[0] << " wires[1]:" << wires[1] << " wires[2]:" << wires[2] <<" wires[3]:" << wires[3]<< endl 
+      << "t0[0]:" << t0s[0] << " t0[1]:" << t0s[1] << " t0[2]:" << t0s[2] <<" t0[3]:" << t0s[3]<< endl 
+      << "valid[0]:" << valids[0] << " valid[1]:" << valids[1] << " valid[2]:" << valids[2] <<" valid[3]:" << valids[3]<< endl 
+      << ">>>>>>>>>>>" << endl; 
+  
   bool notAllValid = false;
   int omitted_layer = -1;  
   for (int i = 0; i < 4; i++){
@@ -1378,10 +1384,10 @@ void MuonPathAnalyticAnalyzer::segment_composer(int valids[4], int wires[4], int
       notAllValid = true;
       omitted_layer = i; 
     }
-
-    break;  
   }
- 
+
+  if (debug_) cout << "notAllValid=" << notAllValid << endl; 
+
   std::vector <latcomb_consts> my_latcomb_consts = {};
   
 /*  cell_valid my_cell_valid; 
@@ -1429,8 +1435,12 @@ void MuonPathAnalyticAnalyzer::segment_composer(int valids[4], int wires[4], int
       
       if (notAllValid) latQuality_[lat].quality = LOWQ; 
       else latQuality_[lat].quality = HIGHQ;
-      if (mPath->quality() < latQuality_[lat].quality) mPath->setQuality(latQuality_[lat].quality);
       
+      if (debug_) cout << "Obtained a combination with quality " << latQuality_[lat].quality << endl; 
+      if (debug_) cout << "My mpath quality before update is " << mPath->quality() << endl;  
+      if (mPath->quality() < latQuality_[lat].quality) mPath->setQuality(latQuality_[lat].quality);
+      if (debug_) cout << "My mpath quality after update is " << mPath->quality() << endl;  
+
       latQuality_[lat].invalidateHitIdx = omitted_layer; 
     }
   }
@@ -1443,7 +1453,6 @@ int MuonPathAnalyticAnalyzer::validate_4hits_one_latcomb_reduced(int valids[4], 
   bool notAllValid = false; 
   for (int i = 0; i < 4; i++){
     if (valids[i] == 0) notAllValid = true;
-    break;  
   }
 
   if (my_latcomb_consts.denom == 0) {
@@ -1457,8 +1466,10 @@ int MuonPathAnalyticAnalyzer::validate_4hits_one_latcomb_reduced(int valids[4], 
     t_perfect = t_perfect / my_latcomb_consts.denom; 
     t_tucked = tuck_t0(t_perfect, t0s, valids);
     if (debug_) 
-      cout << " Perfect time: " << t_perfect << ", Tucked time: " << t_tucked << endl; 
+      cout << "Perfect time: " << t_perfect << ", Tucked time: " << t_tucked << ", Equal = "<< (t_tucked == t_perfect) << endl; 
     if (t_tucked != t_perfect && notAllValid) t_tucked = 0;
+    if (debug_) 
+      cout << "Tucked time after comparison: " << t_tucked << endl; 
   }
   return int(t_tucked);
 }
