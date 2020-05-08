@@ -6,9 +6,9 @@ using namespace std;
 // ============================================================================
 // Constructors and destructor
 // ============================================================================
-MotherGrouping::MotherGrouping(const ParameterSet& pset) {
+MotherGrouping::MotherGrouping(const ParameterSet& pset, edm::ConsumesCollector& iC) {
   // Obtention of parameters
-  debug = pset.getUntrackedParameter<Bool_t>("debug");
+  debug = pset.getUntrackedParameter<bool>("debug");
   if (debug)
     cout << "MotherGrouping: constructor" << endl;
 }
@@ -28,7 +28,7 @@ void MotherGrouping::initialise(const edm::EventSetup& iEventSetup) {
 
 void MotherGrouping::run(Event& iEvent,
                          const EventSetup& iEventSetup,
-                         DTDigiCollection digis,
+                         const DTDigiCollection& digis,
                          std::vector<MuonPath*>* mpaths) {
   if (debug)
     cout << "MotherGrouping: run" << endl;

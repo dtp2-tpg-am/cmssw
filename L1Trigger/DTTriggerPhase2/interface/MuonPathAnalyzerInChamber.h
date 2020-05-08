@@ -16,8 +16,7 @@
 #include "DataFormats/MuonDetId/interface/DTWireId.h"
 #include "DataFormats/DTDigi/interface/DTDigiCollection.h"
 
-#include "L1Trigger/DTTriggerPhase2/interface/muonpath.h"
-#include "L1Trigger/DTTriggerPhase2/interface/analtypedefs.h"
+#include "L1Trigger/DTTriggerPhase2/interface/MuonPath.h"
 #include "L1Trigger/DTTriggerPhase2/interface/constants.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPathAnalyzer.h"
 
@@ -37,9 +36,10 @@
 // ===============================================================================
 // Previous definitions and declarations
 // ===============================================================================
-const int NLayers = 8;
-typedef std::array<LATERAL_CASES, NLayers> TLateralities;
-
+namespace {
+  constexpr int NLayers = 8;
+  typedef std::array<LATERAL_CASES, NLayers> TLateralities;
+}  // namespace
 // ===============================================================================
 // Class declarations
 // ===============================================================================
@@ -47,7 +47,7 @@ typedef std::array<LATERAL_CASES, NLayers> TLateralities;
 class MuonPathAnalyzerInChamber : public MuonPathAnalyzer {
 public:
   // Constructors and destructor
-  MuonPathAnalyzerInChamber(const edm::ParameterSet &pset);
+  MuonPathAnalyzerInChamber(const edm::ParameterSet &pset, edm::ConsumesCollector &iC);
   virtual ~MuonPathAnalyzerInChamber();
 
   // Main methods
@@ -79,7 +79,8 @@ public:
   bool hasPosRF(int wh, int sec) { return wh > 0 || (wh == 0 && sec % 4 > 1); };
 
   // Public attributes
-  edm::ESHandle<DTGeometry> dtGeo_;
+  DTGeometry const *dtGeo_;
+  edm::ESGetToken<DTGeometry, MuonGeometryRecord> dtGeomH;
 
   //ttrig
   std::map<int, float> ttriginfo_;
@@ -99,7 +100,7 @@ private:
   void buildLateralities(MuonPath *mpath);
   void setLateralitiesInMP(MuonPath *mpath, TLateralities lat);
   void setWirePosAndTimeInMP(MuonPath *mpath);
-  void calculateFitParameters(MuonPath *mpath, TLateralities lat, int present_layer[8]);
+  void calculateFitParameters(MuonPath *mpath, TLateralities lat, int present_layer[NLayers]);
   //void calculateFitParameters(MuonPath *mpath, TLateralities lat);
 
   /* Determina si los valores de 4 primitivas forman una trayectoria
@@ -127,7 +128,7 @@ private:
      0 respecto de sí misma, se incluye en el array para que el código que
      hace el procesamiento sea más homogéneo y sencillo */
 
-  Bool_t debug_;
+  bool debug_;
   double chi2Th_;
   edm::FileInPath z_filename_;
   edm::FileInPath shift_filename_;
@@ -135,7 +136,7 @@ private:
   MP_QUALITY minQuality_;
   float chiSquareThreshold_;
   short minHits4Fit_;
-  int cellLayout_[8];
+  int cellLayout_[NLayers];
 };
 
 #endif

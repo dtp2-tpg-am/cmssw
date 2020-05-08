@@ -4,7 +4,7 @@
 //------------------------------------------------------------------
 //--- Constructores y destructores
 //------------------------------------------------------------------
-CandidateGroup::CandidateGroup(Pattern* p) {
+CandidateGroup::CandidateGroup(DTPattern* p) {
   nhits_ = 0;
   nLayerhits_ = 0;
   nisGood_ = 0;
@@ -43,7 +43,7 @@ void CandidateGroup::removeHit(DTPrimitive dthit) {
   quality_ = std::bitset<8>("00000000");
   //std::cout << "Removing hit ";
   //std::cout << dthit.layerId() << " , " << dthit.channelId() << std::endl;
-  for (std::vector<DTPrimitive>::iterator dt_it = candHits_.begin(); dt_it != candHits_.end(); dt_it++) {
+  for (auto dt_it = candHits_.begin(); dt_it != candHits_.end(); dt_it++) {
     if (dthit.layerId() == dt_it->layerId() && dthit.channelId() == dt_it->channelId()) {
       //std::cout << "Found hit to remove" << std::endl;
     } else {

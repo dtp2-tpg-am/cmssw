@@ -3,19 +3,19 @@
 
 using namespace edm;
 using namespace std;
-
+using namespace cmsdt;
 // ============================================================================
 // Constructors and destructor
 // ============================================================================
-MuonPathAnalyzerPerSL::MuonPathAnalyzerPerSL(const ParameterSet &pset)
-    : MuonPathAnalyzer(pset),
+MuonPathAnalyzerPerSL::MuonPathAnalyzerPerSL(const ParameterSet &pset, edm::ConsumesCollector &iC)
+    : MuonPathAnalyzer(pset, iC),
       bxTolerance_(30),
       minQuality_(LOWQGHOST),
       chiSquareThreshold_(50),
-      debug_(pset.getUntrackedParameter<Bool_t>("debug")),
+      debug_(pset.getUntrackedParameter<bool>("debug")),
       chi2Th_(pset.getUntrackedParameter<double>("chi2Th")),
       tanPhiTh_(pset.getUntrackedParameter<double>("tanPhiTh")),
-      use_LSB_(pset.getUntrackedParameter<Bool_t>("use_LSB")),
+      use_LSB_(pset.getUntrackedParameter<bool>("use_LSB")),
       tanPsi_precision_(pset.getUntrackedParameter<double>("tanPsi_precision")),
       x_precision_(pset.getUntrackedParameter<double>("x_precision")) {
   if (debug_)
@@ -43,6 +43,8 @@ MuonPathAnalyzerPerSL::MuonPathAnalyzerPerSL(const ParameterSet &pset)
     std::cout << "chosen sl must be 1,3 or 4(both superlayers)" << std::endl;
     assert(chosen_sl_ != 1 && chosen_sl_ != 3 && chosen_sl_ != 4);  //4 means run using the two superlayers
   }
+
+  dtGeomH = iC.esConsumes<DTGeometry, MuonGeometryRecord, edm::Transition::BeginRun>();
 }
 
 MuonPathAnalyzerPerSL::~MuonPathAnalyzerPerSL() {
@@ -56,7 +58,9 @@ MuonPathAnalyzerPerSL::~MuonPathAnalyzerPerSL() {
 void MuonPathAnalyzerPerSL::initialise(const edm::EventSetup &iEventSetup) {
   if (debug_)
     cout << "MuonPathAnalyzerPerSL::initialiase" << endl;
-  iEventSetup.get<MuonGeometryRecord>().get(dtGeo_);  //1103
+
+  const MuonGeometryRecord &geom = iEventSetup.get<MuonGeometryRecord>();
+  dtGeo_ = &geom.get(dtGeomH);
 }
 
 void MuonPathAnalyzerPerSL::run(edm::Event &iEvent,

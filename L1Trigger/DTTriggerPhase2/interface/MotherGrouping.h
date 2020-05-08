@@ -2,13 +2,15 @@
 #define Phase2L1Trigger_DTTrigger_MotherGrouping_cc
 
 #include "FWCore/Framework/interface/MakerMacros.h"
-#include "FWCore/Framework/interface/EDProducer.h"
+#include "FWCore/Framework/interface/one/EDAnalyzer.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/Run.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/Framework/interface/ConsumesCollector.h"
+#include "FWCore/Framework/interface/FrameworkfwdMostUsed.h"
 
 #include "DataFormats/MuonDetId/interface/DTChamberId.h"
 #include "DataFormats/MuonDetId/interface/DTSuperLayerId.h"
@@ -16,8 +18,7 @@
 #include "DataFormats/MuonDetId/interface/DTWireId.h"
 #include "DataFormats/DTDigi/interface/DTDigiCollection.h"
 
-#include "L1Trigger/DTTriggerPhase2/interface/muonpath.h"
-#include "L1Trigger/DTTriggerPhase2/interface/analtypedefs.h"
+#include "L1Trigger/DTTriggerPhase2/interface/MuonPath.h"
 #include "L1Trigger/DTTriggerPhase2/interface/constants.h"
 
 #include "L1Trigger/DTTriggerPhase2/interface/MotherGrouping.h"
@@ -46,14 +47,14 @@
 class MotherGrouping {
 public:
   // Constructors and destructor
-  MotherGrouping(const edm::ParameterSet& pset);
+  MotherGrouping(const edm::ParameterSet& pset, edm::ConsumesCollector& iC);
   virtual ~MotherGrouping();
 
   // Main methods
   virtual void initialise(const edm::EventSetup& iEventSetup);
   virtual void run(edm::Event& iEvent,
                    const edm::EventSetup& iEventSetup,
-                   DTDigiCollection digis,
+                   const DTDigiCollection& digis,
                    std::vector<MuonPath*>* outMpath);
   virtual void finish();
 
@@ -65,7 +66,7 @@ private:
   // Private methods
 
   // Private attributes
-  Bool_t debug;
+  bool debug;
 };
 
 #endif

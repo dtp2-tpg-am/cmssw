@@ -1,4 +1,4 @@
-#include "L1Trigger/DTTriggerPhase2/interface/muonpath.h"
+#include "L1Trigger/DTTriggerPhase2/interface/MuonPath.h"
 
 #include <cstring>  // Para función "memcpy"
 #include "math.h"
@@ -130,9 +130,6 @@ MuonPath::~MuonPath() {
 //------------------------------------------------------------------
 //--- Public
 //------------------------------------------------------------------
-/**
- * Añade una 'DTPrimitive'
- */
 void MuonPath::setPrimitive(DTPrimitive *ptr, int layer) {
   if (ptr == NULL)
     std::cout << "NULL 'Primitive'." << std::endl;

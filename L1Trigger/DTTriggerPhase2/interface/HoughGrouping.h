@@ -9,14 +9,16 @@
 #include <vector>
 
 // CMSSW headers
-#include <FWCore/Framework/interface/ConsumesCollector.h>
+#include "FWCore/Framework/interface/ConsumesCollector.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
+#include "FWCore/Framework/interface/FrameworkfwdMostUsed.h"
 #include "FWCore/Framework/interface/one/EDAnalyzer.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/Framework/interface/LuminosityBlock.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/ESHandle.h"
+#include "FWCore/Utilities/interface/ESGetToken.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "FWCore/Common/interface/TriggerNames.h"
@@ -88,8 +90,8 @@
 #include "TMath.h"
 
 // Other headers
-#include "L1Trigger/DTTriggerPhase2/interface/muonpath.h"
-#include "L1Trigger/DTTriggerPhase2/interface/dtprimitive.h"
+#include "L1Trigger/DTTriggerPhase2/interface/MuonPath.h"
+#include "L1Trigger/DTTriggerPhase2/interface/DTprimitive.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MotherGrouping.h"
 
 // ===============================================================================
@@ -97,22 +99,32 @@
 // ===============================================================================
 // Namespaces
 using namespace edm;
-using namespace cms;
+using namespace cmsdt;
 
 // ===============================================================================
 // Class declarations
 // ===============================================================================
+struct ProtoCand {
+  unsigned short int NLayersWithHits;   // 0: # of layers with hits.
+  std::vector<bool> IsThereHitInLayer;  // 1: # of hits of high quality (the expected line crosses the cell).
+  std::vector<bool>
+      IsThereNeighBourHitInLayer;      // 2: # of hits of low quality (the expected line is in a neighbouring cell).
+  unsigned short int NHitsDiff;        // 3: absolute diff. between the number of hits in SL1 and SL3.
+  std::vector<double> xDistToPattern;  // 4: absolute distance to all hits of the segment.
+  std::vector<DTPrimitive> DTHits;     // 5: DTPrimitive of the candidate.
+};
+
 class HoughGrouping : public MotherGrouping {
 public:
   // Constructors and destructor
-  HoughGrouping(const ParameterSet& pset);
+  HoughGrouping(const ParameterSet& pset, edm::ConsumesCollector& iC);
   ~HoughGrouping() override;
 
   // Main methods
   void initialise(const edm::EventSetup& iEventSetup) override;
   void run(edm::Event& iEvent,
            const edm::EventSetup& iEventSetup,
-           DTDigiCollection digis,
+           const DTDigiCollection& digis,
            std::vector<MuonPath*>* outMpath) override;
   void finish() override;
 
@@ -129,52 +141,51 @@ private:
 
   void DoHoughTransform();
 
-  std::vector<std::pair<Double_t, Double_t>> GetMaximaVector();
-  std::vector<std::pair<Double_t, Double_t>> FindTheMaxima(
-      std::vector<std::tuple<Double_t, Double_t, UShort_t>> inputvec);
+  std::vector<std::pair<double, double>> GetMaximaVector();
+  std::vector<std::pair<double, double>> FindTheMaxima(
+      std::vector<std::tuple<double, double, unsigned short int>> inputvec);
 
-  std::pair<Double_t, Double_t> GetTwoDelta(std::tuple<Double_t, Double_t, UShort_t> pair1,
-                                            std::tuple<Double_t, Double_t, UShort_t> pair2);
-  std::pair<Double_t, Double_t> GetAveragePoint(std::vector<std::tuple<Double_t, Double_t, UShort_t>> inputvec,
-                                                UShort_t firstindex,
-                                                std::vector<UShort_t> indexlist);
-  std::pair<Double_t, Double_t> TransformPair(std::pair<Double_t, Double_t> inputpair);
+  std::pair<double, double> GetTwoDelta(std::tuple<double, double, unsigned short int> pair1,
+                                        std::tuple<double, double, unsigned short int> pair2);
+  std::pair<double, double> GetAveragePoint(std::vector<std::tuple<double, double, unsigned short int>> inputvec,
+                                            unsigned short int firstindex,
+                                            std::vector<unsigned short int> indexlist);
+  std::pair<double, double> TransformPair(std::pair<double, double> inputpair);
 
-  std::tuple<UShort_t, Bool_t*, Bool_t*, UShort_t, Double_t*, DTPrimitive*> AssociateHits(const DTChamber* thechamb,
-                                                                                          Double_t m,
-                                                                                          Double_t n);
+  ProtoCand AssociateHits(const DTChamber* thechamb, double m, double n);
 
-  void OrderAndFilter(std::vector<std::tuple<UShort_t, Bool_t*, Bool_t*, UShort_t, Double_t*, DTPrimitive*>>& invector,
-                      std::vector<MuonPath*>*& outMuonPath);
+  void OrderAndFilter(std::vector<ProtoCand>& invector, std::vector<MuonPath*>*& outMuonPath);
 
-  void SetDifferenceBetweenSL(std::tuple<UShort_t, Bool_t*, Bool_t*, UShort_t, Double_t*, DTPrimitive*>& tupl);
-  Bool_t AreThereEnoughHits(std::tuple<UShort_t, Bool_t*, Bool_t*, UShort_t, Double_t*, DTPrimitive*> tupl);
+  void SetDifferenceBetweenSL(ProtoCand& tupl);
+  bool AreThereEnoughHits(ProtoCand& tupl);
 
   // Private attributes
-  Bool_t debug, allowUncorrelatedPatterns;
-  UShort_t minNLayerHits, minSingleSLHitsMax, minSingleSLHitsMin, minUncorrelatedHits, UpperNumber, LowerNumber;
-  Double_t angletan, anglebinwidth, posbinwidth, maxdeltaAngDeg, maxdeltaPos, MaxDistanceToWire;
+  bool debug, allowUncorrelatedPatterns;
+  unsigned short int minNLayerHits, minSingleSLHitsMax, minSingleSLHitsMin, minUncorrelatedHits, UpperNumber,
+      LowerNumber;
+  double angletan, anglebinwidth, posbinwidth, maxdeltaAngDeg, maxdeltaPos, MaxDistanceToWire;
 
-  edm::ESHandle<DTGeometry> dtGeomH;
+  DTGeometry const* dtGeo_;
+  edm::ESGetToken<DTGeometry, MuonGeometryRecord> dtGeomH;
   DTChamberId TheChambId;
 
-  Double_t maxrads, minangle, oneanglebin;
-  Double_t xlowlim, xhighlim, zlowlim, zhighlim;
-  Double_t maxdeltaAng;
+  double maxrads, minangle, oneanglebin;
+  double xlowlim, xhighlim, zlowlim, zhighlim;
+  double maxdeltaAng;
 
-  UShort_t anglebins, halfanglebins, spacebins;
-  UShort_t idigi, nhits;
-  UShort_t thestation, thesector;
-  Short_t thewheel;
+  unsigned short int anglebins, halfanglebins, spacebins;
+  unsigned short int idigi, nhits;
+  unsigned short int thestation, thesector;
+  short int thewheel;
 
-  UShort_t** linespace;
+  unsigned short int** linespace;
 
-  std::map<UShort_t, Double_t> anglemap;
-  std::map<UShort_t, Double_t> posmap;
-  std::map<UShort_t, DTPrimitive> digimap[8];
+  std::map<unsigned short int, double> anglemap;
+  std::map<unsigned short int, double> posmap;
+  std::map<unsigned short int, DTPrimitive> digimap[8];
 
-  std::vector<std::pair<Double_t, Double_t>> maxima;
-  std::vector<std::pair<Double_t, Double_t>> hitvec;
+  std::vector<std::pair<double, double>> maxima;
+  std::vector<std::pair<double, double>> hitvec;
 };
 
 #endif

@@ -7,14 +7,17 @@
 
 #include <math.h>
 
-RPCIntegrator::RPCIntegrator(const edm::ParameterSet& pset) {
-  m_debug_ = pset.getUntrackedParameter<Bool_t>("debug");
+RPCIntegrator::RPCIntegrator(const edm::ParameterSet& pset, edm::ConsumesCollector& iC) {
+  m_debug_ = pset.getUntrackedParameter<bool>("debug");
   if (m_debug_)
     std::cout << "RPCIntegrator constructor" << std::endl;
   m_max_quality_to_overwrite_t0_ = pset.getUntrackedParameter<int>("max_quality_to_overwrite_t0");
   m_bx_window_ = pset.getUntrackedParameter<int>("bx_window");
   m_phi_window_ = pset.getUntrackedParameter<double>("phi_window");
   m_storeAllRPCHits_ = pset.getUntrackedParameter<bool>("storeAllRPCHits");
+
+  rpcGeomH = iC.esConsumes<RPCGeometry, MuonGeometryRecord>();
+  dtGeomH = iC.esConsumes<DTGeometry, MuonGeometryRecord>();
 }
 
 RPCIntegrator::~RPCIntegrator() {
@@ -28,16 +31,17 @@ void RPCIntegrator::initialise(const edm::EventSetup& iEventSetup, double shift_
 
   if (m_debug_)
     std::cout << "Getting RPC geometry" << std::endl;
-  iEventSetup.get<MuonGeometryRecord>().get(m_rpcGeo_);
 
-  iEventSetup.get<MuonGeometryRecord>().get(m_dtGeo_);
+  const MuonGeometryRecord& geom = iEventSetup.get<MuonGeometryRecord>();
+  dtGeo_ = &geom.get(dtGeomH);
+  rpcGeo_ = &geom.get(rpcGeomH);
   shift_back_ = shift_back_fromDT;
 }
 
 void RPCIntegrator::finish() { return; }
 
 void RPCIntegrator::prepareMetaPrimitives(edm::Handle<RPCRecHitCollection> rpcRecHits) {
-  rpc_metaprimitives_.clear();
+  RPCMetaprimitives_.clear();
   rpcRecHits_translated_.clear();
   for (auto rpcIt = rpcRecHits->begin(); rpcIt != rpcRecHits->end(); rpcIt++) {
     RPCDetId rpcDetId = (RPCDetId)(*rpcIt).rpcId();
@@ -45,21 +49,21 @@ void RPCIntegrator::prepareMetaPrimitives(edm::Handle<RPCRecHitCollection> rpcRe
     int rpc_region = rpcDetId.region();
     if (rpc_region != 0)
       continue;  // Region = 0 Barrel
-    rpc_metaprimitives_.push_back(
-        rpc_metaprimitive(rpcDetId,
-                          &*rpcIt,
-                          global_position,
-                          3,
-                          rpcIt->BunchX() + 20,
-                          rpcIt->time() + 20 * 25));  // set everyone to rpc single hit not matched to DT flag for now
-                                                      // if dt bx centered at zero again
-    //rpc_metaprimitives_.push_back(rpc_metaprimitive(rpcDetId, &*rpcIt, global_position, 3)); // set everyone to rpc single hit not matched to DT flag for now
+    RPCMetaprimitives_.push_back(
+        RPCMetaprimitive(rpcDetId,
+                         &*rpcIt,
+                         global_position,
+                         3,
+                         rpcIt->BunchX() + 20,
+                         rpcIt->time() + 20 * 25));  // set everyone to rpc single hit not matched to DT flag for now
+                                                     // if dt bx centered at zero again
+    //RPCMetaprimitives_.push_back(RPCMetaprimitive(rpcDetId, &*rpcIt, global_position, 3)); // set everyone to rpc single hit not matched to DT flag for now
   }
 }
 void RPCIntegrator::matchWithDTAndUseRPCTime(std::vector<metaPrimitive>& dt_metaprimitives) {
   for (auto dt_metaprimitive = dt_metaprimitives.begin(); dt_metaprimitive != dt_metaprimitives.end();
        dt_metaprimitive++) {
-    rpc_metaprimitive* bestMatch_rpcRecHit = matchDTwithRPC(&*dt_metaprimitive);
+    RPCMetaprimitive* bestMatch_rpcRecHit = matchDTwithRPC(&*dt_metaprimitive);
     if (bestMatch_rpcRecHit) {
       (*dt_metaprimitive).rpcFlag = 4;
       if ((*dt_metaprimitive).quality < m_max_quality_to_overwrite_t0_) {
@@ -72,7 +76,7 @@ void RPCIntegrator::matchWithDTAndUseRPCTime(std::vector<metaPrimitive>& dt_meta
 
 void RPCIntegrator::makeRPCOnlySegments() {
   std::vector<L1Phase2MuDTPhDigi> rpc_only_segments;
-  for (auto rpc_mp_it_layer1 = rpc_metaprimitives_.begin(); rpc_mp_it_layer1 != rpc_metaprimitives_.end();
+  for (auto rpc_mp_it_layer1 = RPCMetaprimitives_.begin(); rpc_mp_it_layer1 != RPCMetaprimitives_.end();
        rpc_mp_it_layer1++) {
     RPCDetId rpc_id_l1 = rpc_mp_it_layer1->rpc_id;
     const RPCRecHit* rpc_cluster_l1 = rpc_mp_it_layer1->rpc_cluster;
@@ -81,8 +85,8 @@ void RPCIntegrator::makeRPCOnlySegments() {
       continue;  // only one RPC layer in station three and four && avoid duplicating pairs && avoid building RPC only segment if DT segment was already there
     //if (rpc_id_l1.station() > 2 || rpc_id_l1.layer() != 1 || (rpc_mp_it_layer1->rpcFlag == 5 && !m_storeAllRPCHits) || rpc_mp_it_layer1->rpcFlag == 6) continue; // only one RPC layer in station three and four && avoid duplicating pairs && avoid building RPC only segment if DT segment was already there && allow a cluster to be used in one segment only
     int min_dPhi = std::numeric_limits<int>::max();
-    rpc_metaprimitive* bestMatch_rpc_mp_layer2 = NULL;
-    for (auto rpc_mp_it_layer2 = rpc_metaprimitives_.begin(); rpc_mp_it_layer2 != rpc_metaprimitives_.end();
+    RPCMetaprimitive* bestMatch_rpc_mp_layer2 = NULL;
+    for (auto rpc_mp_it_layer2 = RPCMetaprimitives_.begin(); rpc_mp_it_layer2 != RPCMetaprimitives_.end();
          rpc_mp_it_layer2++) {
       RPCDetId rpc_id_l2 = rpc_mp_it_layer2->rpc_id;
       const RPCRecHit* rpc_cluster_l2 = rpc_mp_it_layer2->rpc_cluster;
@@ -120,7 +124,7 @@ void RPCIntegrator::makeRPCOnlySegments() {
 }
 
 void RPCIntegrator::storeRPCSingleHits() {
-  for (auto rpc_mp_it = rpc_metaprimitives_.begin(); rpc_mp_it != rpc_metaprimitives_.end(); rpc_mp_it++) {
+  for (auto rpc_mp_it = RPCMetaprimitives_.begin(); rpc_mp_it != RPCMetaprimitives_.end(); rpc_mp_it++) {
     //const RPCRecHit* rpc_hit = rpc_mp_it->rpc_cluster;
     RPCDetId rpcDetId = rpc_mp_it->rpc_id;
     if (rpc_mp_it->rpcFlag == 6)
@@ -147,7 +151,7 @@ void RPCIntegrator::removeRPCHitsUsed() {
   }
 }
 
-rpc_metaprimitive* RPCIntegrator::matchDTwithRPC(metaPrimitive* dt_metaprimitive) {
+RPCMetaprimitive* RPCIntegrator::matchDTwithRPC(metaPrimitive* dt_metaprimitive) {
   // metaprimitive dtChId is still in convention with [1 - 12]
   int dt_bx =
       (int)round(dt_metaprimitive->t0 / 25.) -
@@ -158,9 +162,9 @@ rpc_metaprimitive* RPCIntegrator::matchDTwithRPC(metaPrimitive* dt_metaprimitive
     dt_sector = 4;
   if (dt_sector == 14)
     dt_sector = 10;
-  rpc_metaprimitive* bestMatch_rpcRecHit = NULL;
+  RPCMetaprimitive* bestMatch_rpcRecHit = NULL;
   float min_dPhi = std::numeric_limits<float>::max();
-  for (auto rpc_mp_it = rpc_metaprimitives_.begin(); rpc_mp_it != rpc_metaprimitives_.end(); rpc_mp_it++) {
+  for (auto rpc_mp_it = RPCMetaprimitives_.begin(); rpc_mp_it != RPCMetaprimitives_.end(); rpc_mp_it++) {
     RPCDetId rpc_det_id = rpc_mp_it->rpc_id;
     //const RPCRecHit* rpc_cluster_toBeMatched = rpc_mp_it->rpc_cluster;
     if (rpc_det_id.ring() == dt_chId.wheel()  // ring() in barrel RPC corresponds to the wheel
@@ -212,15 +216,15 @@ L1Phase2MuDTPhDigi RPCIntegrator::createL1Phase2MuDTPhDigi(
                             rpc_flag);
 }
 
-double RPCIntegrator::phiBending(rpc_metaprimitive* rpc_hit_1, rpc_metaprimitive* rpc_hit_2) {
+double RPCIntegrator::phiBending(RPCMetaprimitive* rpc_hit_1, RPCMetaprimitive* rpc_hit_2) {
   // Adaptation of https://github.com/dtp2-tpg-am/cmssw/blob/AM_106X_dev/L1Trigger/DTTriggerPhase2/src/MuonPathAssociator.cc#L189
   DTChamberId DT_chamber(rpc_hit_1->rpc_id.ring(), rpc_hit_1->rpc_id.station(), rpc_hit_1->rpc_id.sector());
-  LocalPoint lp_rpc_hit_1_dtconv = m_dtGeo_->chamber(DT_chamber)->toLocal(rpc_hit_1->global_position);
-  LocalPoint lp_rpc_hit_2_dtconv = m_dtGeo_->chamber(DT_chamber)->toLocal(rpc_hit_2->global_position);
+  LocalPoint lp_rpc_hit_1_dtconv = dtGeo_->chamber(DT_chamber)->toLocal(rpc_hit_1->global_position);
+  LocalPoint lp_rpc_hit_2_dtconv = dtGeo_->chamber(DT_chamber)->toLocal(rpc_hit_2->global_position);
   double slope = (lp_rpc_hit_1_dtconv.x() - lp_rpc_hit_2_dtconv.x()) / distance_between_two_rpc_layers_;
   double average_x = (lp_rpc_hit_1_dtconv.x() + lp_rpc_hit_2_dtconv.x()) / 2;
   GlobalPoint seg_middle_global =
-      m_dtGeo_->chamber(DT_chamber)->toGlobal(LocalPoint(average_x, 0., 0.));  // for station 1 and 2, z = 0
+      dtGeo_->chamber(DT_chamber)->toGlobal(LocalPoint(average_x, 0., 0.));  // for station 1 and 2, z = 0
   double seg_phi = phi_DT_MP_conv(seg_middle_global.phi(), rpc_hit_1->rpc_id.sector());
   double psi = atan(slope);
   double phiB = hasPosRF_rpc(rpc_hit_1->rpc_id.ring(), rpc_hit_1->rpc_id.sector()) ? psi - seg_phi : -psi - seg_phi;
@@ -248,7 +252,7 @@ double RPCIntegrator::phi_DT_MP_conv(double rpc_global_phi, int rpcSector) {
 GlobalPoint RPCIntegrator::RPCGlobalPosition(RPCDetId rpcId, const RPCRecHit& rpcIt) const {
   RPCDetId rpcid = RPCDetId(rpcId);
   const LocalPoint& rpc_lp = rpcIt.localPosition();
-  const GlobalPoint& rpc_gp = m_rpcGeo_->idToDet(rpcid)->surface().toGlobal(rpc_lp);
+  const GlobalPoint& rpc_gp = rpcGeo_->idToDet(rpcid)->surface().toGlobal(rpc_lp);
 
   return rpc_gp;
 }

@@ -8,15 +8,15 @@ using namespace std;
 // ============================================================================
 // Constructors and destructor
 // ============================================================================
-MuonPathAssociator::MuonPathAssociator(const ParameterSet &pset) {
+MuonPathAssociator::MuonPathAssociator(const ParameterSet &pset, edm::ConsumesCollector &iC) {
   // Obtention of parameters
-  debug = pset.getUntrackedParameter<Bool_t>("debug");
-  clean_chi2_correlation = pset.getUntrackedParameter<Bool_t>("clean_chi2_correlation");
-  use_LSB = pset.getUntrackedParameter<Bool_t>("use_LSB");
+  debug = pset.getUntrackedParameter<bool>("debug");
+  clean_chi2_correlation = pset.getUntrackedParameter<bool>("clean_chi2_correlation");
+  use_LSB = pset.getUntrackedParameter<bool>("use_LSB");
   tanPsi_precision = pset.getUntrackedParameter<double>("tanPsi_precision");
   x_precision = pset.getUntrackedParameter<double>("x_precision");
-  useBX_correlation = pset.getUntrackedParameter<Bool_t>("useBX_correlation");
-  allow_confirmation = pset.getUntrackedParameter<Bool_t>("allow_confirmation");
+  useBX_correlation = pset.getUntrackedParameter<bool>("useBX_correlation");
+  allow_confirmation = pset.getUntrackedParameter<bool>("allow_confirmation");
   dT0_correlate_TP = pset.getUntrackedParameter<double>("dT0_correlate_TP");
   dBX_correlate_TP = pset.getUntrackedParameter<int>("dBX_correlate_TP");
   dTanPsi_correlate_TP = pset.getUntrackedParameter<double>("dTanPsi_correlate_TP");
@@ -39,6 +39,8 @@ MuonPathAssociator::MuonPathAssociator(const ParameterSet &pset) {
     ifin3 >> rawId >> shift;
     shiftinfo[rawId] = shift;
   }
+
+  dtGeomH = iC.esConsumes<DTGeometry, MuonGeometryRecord, edm::Transition::BeginRun>();
 }
 
 MuonPathAssociator::~MuonPathAssociator() {
@@ -53,7 +55,8 @@ void MuonPathAssociator::initialise(const edm::EventSetup &iEventSetup) {
   if (debug)
     cout << "MuonPathAssociator::initialiase" << endl;
 
-  iEventSetup.get<MuonGeometryRecord>().get(dtGeo);  //1103
+  const MuonGeometryRecord &geom = iEventSetup.get<MuonGeometryRecord>();
+  dtGeo_ = &geom.get(dtGeomH);
 }
 
 void MuonPathAssociator::run(edm::Event &iEvent,
@@ -259,7 +262,7 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
             double z = 0;
             if (ChId.station() >= 3)
               z = -1.8;
-            GlobalPoint jm_x_cmssw_global = dtGeo->chamber(ChId)->toGlobal(
+            GlobalPoint jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(
                 LocalPoint(MeanPos, 0., z));  //Jm_x is already extrapolated to the middle of the SL
             int thisec = ChId.sector();
             if (se == 13)
@@ -1047,7 +1050,7 @@ void MuonPathAssociator::printmPC(metaPrimitive mP) {
   if (mpath->getQuality(0) >=3 and mpath->getQuality(2) >=3)  quality=HIGHHIGHQ;
       
   DTChamberId ChId(mpath->getRawId());
-  GlobalPoint jm_x_cmssw_global = dtGeo->chamber(ChId)->toGlobal(LocalPoint(MeanPos,0.,0.));//jm_x is already extrapolated to the middle of the SL
+  GlobalPoint jm_x_cmssw_global = dtGeo_.chamber(ChId)->toGlobal(LocalPoint(MeanPos,0.,0.));//jm_x is already extrapolated to the middle of the SL
   int thisec = ChId.sector();
   float phi= jm_x_cmssw_global.phi()-0.5235988*(thisec-1);
   float psi=atan(NewSlope);

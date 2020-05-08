@@ -16,8 +16,7 @@
 #include "DataFormats/MuonDetId/interface/DTWireId.h"
 #include "DataFormats/DTDigi/interface/DTDigiCollection.h"
 
-#include "L1Trigger/DTTriggerPhase2/interface/muonpath.h"
-#include "L1Trigger/DTTriggerPhase2/interface/analtypedefs.h"
+#include "L1Trigger/DTTriggerPhase2/interface/MuonPath.h"
 #include "L1Trigger/DTTriggerPhase2/interface/constants.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPathAnalyzer.h"
 
@@ -45,7 +44,7 @@
 class MuonPathAnalyzerPerSL : public MuonPathAnalyzer {
 public:
   // Constructors and destructor
-  MuonPathAnalyzerPerSL(const edm::ParameterSet &pset);
+  MuonPathAnalyzerPerSL(const edm::ParameterSet &pset, edm::ConsumesCollector &iC);
   virtual ~MuonPathAnalyzerPerSL();
 
   // Main methods
@@ -76,7 +75,8 @@ public:
   bool hasPosRF(int wh, int sec) { return wh > 0 || (wh == 0 && sec % 4 > 1); };
 
   // Public attributes
-  edm::ESHandle<DTGeometry> dtGeo_;
+  DTGeometry const *dtGeo_;
+  edm::ESGetToken<DTGeometry, MuonGeometryRecord> dtGeomH;
 
   //shift
   edm::FileInPath shift_filename_;
@@ -158,12 +158,12 @@ private:
   int bxTolerance_;
   MP_QUALITY minQuality_;
   float chiSquareThreshold_;
-  Bool_t debug_;
+  bool debug_;
   double chi2Th_;
   double chi2corTh_;
   double tanPhiTh_;
   int cellLayout_[4];
-  Bool_t use_LSB_;
+  bool use_LSB_;
   double tanPsi_precision_;
   double x_precision_;
 };
