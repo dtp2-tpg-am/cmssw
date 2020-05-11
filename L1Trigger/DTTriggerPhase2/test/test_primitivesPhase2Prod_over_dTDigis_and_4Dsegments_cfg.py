@@ -19,7 +19,6 @@ process.source = cms.Source("PoolSource",fileNames = cms.untracked.vstring('file
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(1))
 process.dtTriggerPhase2PrimitiveDigis.dump = False
 process.dtTriggerPhase2PrimitiveDigis.debug = True
-process.dtTriggerPhase2PrimitiveDigis.chi2Th = cms.untracked.double(0.16)
 
 #scenario
 process.dtTriggerPhase2PrimitiveDigis.scenario = 1
@@ -28,25 +27,21 @@ process.CalibratedDigis.scenario = 1
 
 ####################### SliceTest specials ##############################
 
-#Chi2 -> Changing a lot lately
-process.dtTriggerPhase2PrimitiveDigis.chi2Th = cms.untracked.double(0.16)
-
 #LSB -> Position 0.025 cm instead of 0.004 cm
 process.dtTriggerPhase2PrimitiveDigis.use_LSB = True
 process.dtTriggerPhase2PrimitiveDigis.x_precision = cms.untracked.double(1./(10.*16.))
-#process.dtTriggerPhase2PrimitiveDigis.x_precision = cms.untracked.double(0.025)
 process.dtTriggerPhase2PrimitiveDigis.tanPsi_precision = cms.untracked.double(1./4096.)
 
 #Correlate with BX
-process.dtTriggerPhase2PrimitiveDigis.useBX_correlation = True
-process.dtTriggerPhase2PrimitiveDigis.dBX_correlate_TP = 1
+#process.dtTriggerPhase2PrimitiveDigis.useBX_correlation = True
+#process.dtTriggerPhase2PrimitiveDigis.dBX_correlate_TP = 1
 
 #Correlate with tanPsi
 process.dtTriggerPhase2PrimitiveDigis.dTanPsi_correlate_TP = cms.untracked.double(9999./4096.)
 #process.dtTriggerPhase2PrimitiveDigis.dTanPsi_correlate_TP = cms.untracked.double(900./4096.)
 
 #Confirmation forbidden
-process.dtTriggerPhase2PrimitiveDigis.allow_confirmation = False
+#process.dtTriggerPhase2PrimitiveDigis.allow_confirmation = False
 
 #TanPsi stuff
 process.dtTriggerPhase2PrimitiveDigis.tanPhiTh = cms.untracked.double(1.)
