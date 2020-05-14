@@ -6,4 +6,6 @@
 #include <DataFormats/L1DTTrackFinder/interface/L1MuDTTrackContainer.h>
 #include <DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhDigi.h>
 #include <DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhContainer.h>
+#include <DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTEtaDigi.h>
+#include <DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTEtaContainer.h>
 #include <DataFormats/Common/interface/Wrapper.h>

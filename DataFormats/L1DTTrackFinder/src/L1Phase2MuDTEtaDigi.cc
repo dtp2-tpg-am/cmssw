@@ -4,11 +4,6 @@
 //
 //   Description: trigger primtive data for the
 //                muon barrel Etaase2 trigger
-//
-//
-//   Author List: Federica Primavera  Bologna INFN
-//
-//
 //--------------------------------------------------
 
 //-----------------------
@@ -37,8 +32,8 @@ L1Phase2MuDTEtaDigi::L1Phase2MuDTEtaDigi()
       m_sector(0),
       m_station(0),
       m_superlayer(0),
-      m_phiAngle(0),
-      m_phiBending(0),
+      m_etaAngle(0),
+      m_etaBending(0),
       m_qualityCode(-1),
       m_index(0),
       m_t0(0),
@@ -46,14 +41,14 @@ L1Phase2MuDTEtaDigi::L1Phase2MuDTEtaDigi()
       m_rpcFlag(-10) {}
 
 L1Phase2MuDTEtaDigi::L1Phase2MuDTEtaDigi(
-    int bx, int wh, int sc, int st, int sl, int phi, int phib, int qual, int idx, int t0, int chi2, int rpc)
+    int bx, int wh, int sc, int st, int sl, int eta, int etab, int qual, int idx, int t0, int chi2, int rpc)
     : m_bx(bx),
       m_wheel(wh),
       m_sector(sc),
       m_station(st),
       m_superlayer(sl),
-      m_phiAngle(phi),
-      m_phiBending(phib),
+      m_etaAngle(eta),
+      m_etaBending(etab),
       m_qualityCode(qual),
       m_index(idx),
       m_t0(t0),
@@ -73,9 +68,9 @@ int L1Phase2MuDTEtaDigi::stNum() const { return m_station; }
 
 int L1Phase2MuDTEtaDigi::slNum() const { return m_superlayer; }
 
-int L1Phase2MuDTEtaDigi::eta() const { return m_phiAngle; }
+int L1Phase2MuDTEtaDigi::eta() const { return m_etaAngle; }
 
-int L1Phase2MuDTEtaDigi::etaBend() const { return m_phiBending; }
+int L1Phase2MuDTEtaDigi::etaBend() const { return m_etaBending; }
 
 int L1Phase2MuDTEtaDigi::quality() const { return m_qualityCode; }
 
