@@ -1,31 +1,5 @@
-//-------------------------------------------------
-//
-//   Class L1MuDTChambEtaDigi
-//
-//   Description: trigger primtive data for the
-//                muon barrel Etaase2 trigger
-//--------------------------------------------------
-
-//-----------------------
-// This Class's Header --
-//-----------------------
 #include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTEtaDigi.h"
 
-//-------------------------------
-// Collaborating Class Headers --
-//-------------------------------
-
-//---------------
-// C++ Headers --
-//---------------
-
-//-------------------
-// Initializations --
-//-------------------
-
-//----------------
-// Constructors --
-//----------------
 L1Phase2MuDTEtaDigi::L1Phase2MuDTEtaDigi()
     : m_bx(-100),
       m_wheel(0),
@@ -55,9 +29,6 @@ L1Phase2MuDTEtaDigi::L1Phase2MuDTEtaDigi(
       m_chi2(chi2),
       m_rpcFlag(rpc) {}
 
-//--------------
-// Operations --
-//--------------
 int L1Phase2MuDTEtaDigi::bxNum() const { return m_bx; }
 
 int L1Phase2MuDTEtaDigi::whNum() const { return m_wheel; }
