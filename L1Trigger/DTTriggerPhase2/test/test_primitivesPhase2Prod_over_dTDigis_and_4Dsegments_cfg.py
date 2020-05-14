@@ -15,10 +15,10 @@ process.load("L1Trigger.DTTriggerPhase2.CalibratedDigis_cfi")
 process.load("L1Trigger.DTTriggerPhase2.dtTriggerPhase2PrimitiveDigis_cfi")
 
 #process.source = cms.Source("PoolSource",fileNames = cms.untracked.vstring('file:/eos/cms/store/user/folguera/P2L1TUpgrade/digis_segments_Run2016BSingleMuonRAW-RECO_camilo.root'))
-process.source = cms.Source("PoolSource",fileNames = cms.untracked.vstring('file:/eos/cms/store/user/folguera/P2L1TUpgrade/digis_segments_Run2016BSingleMuonRAW-RECO_camilo.root'),skipEvents=cms.untracked.uint32(1))
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(1))
+process.source = cms.Source("PoolSource",fileNames = cms.untracked.vstring('file:/tmp/carrillo/digis_segments_Run2016BSingleMuonRAW-RECO.root'),skipEvents=cms.untracked.uint32(1))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 process.dtTriggerPhase2PrimitiveDigis.dump = False
-process.dtTriggerPhase2PrimitiveDigis.debug = True
+process.dtTriggerPhase2PrimitiveDigis.debug = False
 
 #scenario
 process.dtTriggerPhase2PrimitiveDigis.scenario = 1
@@ -41,7 +41,7 @@ process.dtTriggerPhase2PrimitiveDigis.dTanPsi_correlate_TP = cms.untracked.doubl
 #process.dtTriggerPhase2PrimitiveDigis.dTanPsi_correlate_TP = cms.untracked.double(900./4096.)
 
 #Confirmation forbidden
-#process.dtTriggerPhase2PrimitiveDigis.allow_confirmation = False
+process.dtTriggerPhase2PrimitiveDigis.allow_confirmation = True
 
 #TanPsi stuff
 process.dtTriggerPhase2PrimitiveDigis.tanPhiTh = cms.untracked.double(1.)
