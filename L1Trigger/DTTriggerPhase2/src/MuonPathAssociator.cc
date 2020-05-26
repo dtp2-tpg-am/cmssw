@@ -872,7 +872,7 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
               if (!clean_chi2_correlation)
                 outMPaths.push_back(newSL3metaPrimitive);
               else
-                normalMetaPrimitives.push_back(newSL3metaPrimitive);
+		  normalMetaPrimitives.push_back(newSL3metaPrimitive);
             }
           }
         }
@@ -896,6 +896,36 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
       }
     }
   }
+
+  //Eta MP
+
+  std::vector<metaPrimitive> SL2metaPrimitives;
+
+  for (int wh = -2; wh <= 2; wh++) {
+      for (int st = 1; st <= 4; st++) {
+	  for (int se = 1; se <= 14; se++) {
+	      if (se >= 13 && st != 4)
+		  continue;
+
+	      DTChamberId ChId(wh, st, se);
+	      DTSuperLayerId sl2Id(wh, st, se, 2);
+	      
+	      //filterSL2
+	      for (auto metaprimitiveIt = inMPaths.begin(); metaprimitiveIt != inMPaths.end(); ++metaprimitiveIt)
+		  if (metaprimitiveIt->rawId == sl2Id.rawId()){
+		      SL2metaPrimitives.push_back(*metaprimitiveIt);
+		      printmPC(*metaprimitiveIt);
+		      outMPaths.push_back(*metaprimitiveIt);
+		  }
+	  }
+      }
+  }
+  
+  std::cout<<"\t etaTP: added "<<SL2metaPrimitives.size()<<"to outMPaths"<<std::endl;
+
+  SL2metaPrimitives.clear();
+  SL2metaPrimitives.erase(SL2metaPrimitives.begin(), SL2metaPrimitives.end());
+
 }
 
 void MuonPathAssociator::removeSharingFits(std::vector<metaPrimitive> &chamberMPaths,
@@ -1016,19 +1046,35 @@ bool MuonPathAssociator::isNotAPrimo(metaPrimitive first, metaPrimitive second) 
 }
 
 void MuonPathAssociator::printmPC(metaPrimitive mP) {
-  DTChamberId ChId(mP.rawId);
-  std::cout << ChId << "\t"
-            << " " << setw(2) << left << mP.wi1 << " " << setw(2) << left << mP.wi2 << " " << setw(2) << left << mP.wi3
-            << " " << setw(2) << left << mP.wi4 << " " << setw(2) << left << mP.wi5 << " " << setw(2) << left << mP.wi6
-            << " " << setw(2) << left << mP.wi7 << " " << setw(2) << left << mP.wi8 << " " << setw(5) << left << mP.tdc1
-            << " " << setw(5) << left << mP.tdc2 << " " << setw(5) << left << mP.tdc3 << " " << setw(5) << left
-            << mP.tdc4 << " " << setw(5) << left << mP.tdc5 << " " << setw(5) << left << mP.tdc6 << " " << setw(5)
-            << left << mP.tdc7 << " " << setw(5) << left << mP.tdc8 << " " << setw(2) << left << mP.lat1 << " "
-            << setw(2) << left << mP.lat2 << " " << setw(2) << left << mP.lat3 << " " << setw(2) << left << mP.lat4
-            << " " << setw(2) << left << mP.lat5 << " " << setw(2) << left << mP.lat6 << " " << setw(2) << left
-            << mP.lat7 << " " << setw(2) << left << mP.lat8 << " " << setw(10) << right << mP.x << " " << setw(9)
-            << left << mP.tanPhi << " " << setw(5) << left << mP.t0 << " " << setw(13) << left << mP.chi2 << endl;
+    DTSuperLayerId slId(mP.rawId);    
+    if(!slId){
+	DTChamberId ChId(mP.rawId);
+	std::cout << ChId << "\t"
+		  << " " << setw(2) << left << mP.wi1 << " " << setw(2) << left << mP.wi2 << " " << setw(2) << left << mP.wi3
+		  << " " << setw(2) << left << mP.wi4 << " " << setw(2) << left << mP.wi5 << " " << setw(2) << left << mP.wi6
+		  << " " << setw(2) << left << mP.wi7 << " " << setw(2) << left << mP.wi8 << " " << setw(5) << left << mP.tdc1
+		  << " " << setw(5) << left << mP.tdc2 << " " << setw(5) << left << mP.tdc3 << " " << setw(5) << left
+		  << mP.tdc4 << " " << setw(5) << left << mP.tdc5 << " " << setw(5) << left << mP.tdc6 << " " << setw(5)
+		  << left << mP.tdc7 << " " << setw(5) << left << mP.tdc8 << " " << setw(2) << left << mP.lat1 << " "
+		  << setw(2) << left << mP.lat2 << " " << setw(2) << left << mP.lat3 << " " << setw(2) << left << mP.lat4
+		  << " " << setw(2) << left << mP.lat5 << " " << setw(2) << left << mP.lat6 << " " << setw(2) << left
+		  << mP.lat7 << " " << setw(2) << left << mP.lat8 << " " << setw(10) << right << mP.x << " " << setw(9)
+		  << left << mP.tanPhi << " " << setw(5) << left << mP.t0 << " " << setw(13) << left << mP.chi2 << endl;
+    }else{
+	std::cout << slId << "\t"
+		  << " " << setw(2) << left << mP.wi1 << " " << setw(2) << left << mP.wi2 << " " << setw(2) << left << mP.wi3
+		  << " " << setw(2) << left << mP.wi4 << " " << setw(2) << left << mP.wi5 << " " << setw(2) << left << mP.wi6
+		  << " " << setw(2) << left << mP.wi7 << " " << setw(2) << left << mP.wi8 << " " << setw(5) << left << mP.tdc1
+		  << " " << setw(5) << left << mP.tdc2 << " " << setw(5) << left << mP.tdc3 << " " << setw(5) << left
+		  << mP.tdc4 << " " << setw(5) << left << mP.tdc5 << " " << setw(5) << left << mP.tdc6 << " " << setw(5)
+		  << left << mP.tdc7 << " " << setw(5) << left << mP.tdc8 << " " << setw(2) << left << mP.lat1 << " "
+		  << setw(2) << left << mP.lat2 << " " << setw(2) << left << mP.lat3 << " " << setw(2) << left << mP.lat4
+		  << " " << setw(2) << left << mP.lat5 << " " << setw(2) << left << mP.lat6 << " " << setw(2) << left
+		  << mP.lat7 << " " << setw(2) << left << mP.lat8 << " " << setw(10) << right << mP.x << " " << setw(9)
+		  << left << mP.tanPhi << " " << setw(5) << left << mP.t0 << " " << setw(13) << left << mP.chi2 << endl;
+    }
 }
+
 /*
   void MuonPathAssociator::associate(MuonPath *mpath) {
   
