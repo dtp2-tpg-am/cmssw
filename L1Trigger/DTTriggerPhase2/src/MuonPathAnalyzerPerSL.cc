@@ -310,6 +310,14 @@ void MuonPathAnalyzerPerSL::analyze(MuonPath *inMPath, std::vector<metaPrimitive
           double phiB = hasPosRF(MuonPathSLId.wheel(), MuonPathSLId.sector()) ? psi - phi : -psi - phi;
           double chi2 = mpAux->chiSquare() * 0.01;  //in cmssw we need cm, 1 cm^2 = 100 mm^2
 
+	  //etaTP
+	  if (MuonPathSLId.superLayer() == 2){
+	      double jm_y = (double)mpAux->horizPos() / 10. +shiftinfo_[wireId.rawId()];
+	      GlobalPoint jm_y_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(0.,jm_y,0));
+	      phi=jm_y_cmssw_global.z();
+	      phiB=jm_tanPhi;
+	  }
+
           if (debug_)
             std::cout << "DTp2:analyze \t\t\t\t\t\t\t\t  pushing back metaPrimitive at x=" << jm_x
                       << " tanPhi:" << jm_tanPhi << " t0:" << jm_t0 << std::endl;

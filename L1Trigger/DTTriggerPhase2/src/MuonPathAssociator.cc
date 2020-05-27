@@ -897,7 +897,7 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
     }
   }
 
-  //Eta MP
+  //etaTP we do not correlate with other superlayer in the same chamber so we forward them all 
 
   std::vector<metaPrimitive> SL2metaPrimitives;
 

@@ -14,11 +14,11 @@ process.GlobalTag.globaltag = "80X_dataRun2_2016SeptRepro_v7"
 process.load("L1Trigger.DTTriggerPhase2.CalibratedDigis_cfi")
 process.load("L1Trigger.DTTriggerPhase2.dtTriggerPhase2PrimitiveDigis_cfi")
 
-#process.source = cms.Source("PoolSource",fileNames = cms.untracked.vstring('file:/eos/cms/store/user/folguera/P2L1TUpgrade/digis_segments_Run2016BSingleMuonRAW-RECO_camilo.root'))
-process.source = cms.Source("PoolSource",fileNames = cms.untracked.vstring('file:/eos/cms/store/user/folguera/P2L1TUpgrade/digis_segments_Run2016BSingleMuonRAW-RECO_camilo.root'),skipEvents=cms.untracked.uint32(1))
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(1))
+process.source = cms.Source("PoolSource",fileNames = cms.untracked.vstring('file:/tmp/carrillo/digis_segments_Run2016BSingleMuonRAW-RECO.root'))
+#process.source = cms.Source("PoolSource",fileNames = cms.untracked.vstring('file:/eos/cms/store/user/folguera/P2L1TUpgrade/digis_segments_Run2016BSingleMuonRAW-RECO_camilo.root'),skipEvents=cms.untracked.uint32(1))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 process.dtTriggerPhase2PrimitiveDigis.dump = False
-process.dtTriggerPhase2PrimitiveDigis.debug = True
+process.dtTriggerPhase2PrimitiveDigis.debug = False
 
 #scenario
 process.dtTriggerPhase2PrimitiveDigis.scenario = 1
@@ -49,7 +49,7 @@ process.dtTriggerPhase2PrimitiveDigis.tanPhiTh = cms.untracked.double(1.)
 
 process.out = cms.OutputModule("PoolOutputModule",
                                outputCommands = cms.untracked.vstring('keep *'),
-                               fileName = cms.untracked.string('DTTriggerPhase2Primitives.root')
+                               fileName = cms.untracked.string('/tmp/carrillo/DTTriggerPhase2Primitives.root')
 )
 
 process.p = cms.Path(process.CalibratedDigis*process.dtTriggerPhase2PrimitiveDigis)

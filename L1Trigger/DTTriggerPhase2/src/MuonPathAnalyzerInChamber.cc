@@ -355,12 +355,16 @@ void MuonPathAnalyzerInChamber::setWirePosAndTimeInMP(MuonPath *mpath) {
   mpath->setRawId(chId.rawId());
 
   DTSuperLayerId MuonPathSLId1(thisLId.wheel(), thisLId.station(), thisLId.sector(), 1);
+  DTSuperLayerId MuonPathSLId2(thisLId.wheel(), thisLId.station(), thisLId.sector(), 2);
   DTSuperLayerId MuonPathSLId3(thisLId.wheel(), thisLId.station(), thisLId.sector(), 3);
+  
   DTWireId wireId1(MuonPathSLId1, 2, 1);
+  DTWireId wireId2(MuonPathSLId2, 2, 1);
   DTWireId wireId3(MuonPathSLId3, 2, 1);
 
-  if (debug_)
-    cout << "shift1=" << shiftinfo_[wireId1.rawId()] << " shift3=" << shiftinfo_[wireId3.rawId()] << endl;
+  //if (debug_)
+  cout << "etaTP shift1=" << shiftinfo_[wireId1.rawId()] << " shift2=" << shiftinfo_[wireId2.rawId()] << " shift3=" << shiftinfo_[wireId3.rawId()] << endl;
+  
 
   float delta = 42000;                                                         //um
   float zwire[8] = {-13.7, -12.4, -11.1, -9.8002, 9.79999, 11.1, 12.4, 13.7};  // mm

@@ -18,6 +18,8 @@
 #include "DataFormats/DTDigi/interface/DTDigiCollection.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhContainer.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhDigi.h"
+#include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTEtaContainer.h"
+#include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTEtaDigi.h"
 
 #include "DataFormats/RPCRecHit/interface/RPCRecHitCollection.h"
 #include <DataFormats/MuonDetId/interface/RPCDetId.h>
