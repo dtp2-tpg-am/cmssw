@@ -1,42 +1,12 @@
-#ifndef L1Trigger_DTTriggerPhase2_MuonPathAnalyzerPerSL_cc
-#define L1Trigger_DTTriggerPhase2_MuonPathAnalyzerPerSL_cc
+#ifndef L1Trigger_DTTriggerPhase2_MuonPathAnalyzerPerSL_h
+#define L1Trigger_DTTriggerPhase2_MuonPathAnalyzerPerSL_h
 
-#include "FWCore/Framework/interface/MakerMacros.h"
-#include "FWCore/Framework/interface/EDProducer.h"
-#include "FWCore/Framework/interface/ESHandle.h"
-#include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/EventSetup.h"
-#include "FWCore/Framework/interface/Run.h"
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
-
-#include "DataFormats/MuonDetId/interface/DTChamberId.h"
-#include "DataFormats/MuonDetId/interface/DTSuperLayerId.h"
-#include "DataFormats/MuonDetId/interface/DTLayerId.h"
-#include "DataFormats/MuonDetId/interface/DTWireId.h"
-#include "DataFormats/DTDigi/interface/DTDigiCollection.h"
-
-#include "L1Trigger/DTTriggerPhase2/interface/MuonPath.h"
-#include "L1Trigger/DTTriggerPhase2/interface/constants.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPathAnalyzer.h"
-
-#include "CalibMuon/DTDigiSync/interface/DTTTrigBaseSync.h"
-#include "CalibMuon/DTDigiSync/interface/DTTTrigSyncFactory.h"
-
-#include "L1Trigger/DTSectorCollector/interface/DTSectCollPhSegm.h"
-#include "L1Trigger/DTSectorCollector/interface/DTSectCollThSegm.h"
-
-#include "Geometry/Records/interface/MuonGeometryRecord.h"
-#include "Geometry/DTGeometry/interface/DTGeometry.h"
-#include "Geometry/DTGeometry/interface/DTLayer.h"
-
-#include <iostream>
-#include <fstream>
 
 // ===============================================================================
 // Previous definitions and declarations
 // ===============================================================================
-
+using namespace cmsdt;
 // ===============================================================================
 // Class declarations
 // ===============================================================================
@@ -85,32 +55,12 @@ private:
   // Private methods
   void analyze(MuonPathPtr &inMPath, std::vector<metaPrimitive> &metaPrimitives);
 
-  void setCellLayout(const int layout[4]);
+  void setCellLayout(const int layout[NUM_LAYERS]);
   void buildLateralities(void);
-  bool isStraightPath(LATERAL_CASES sideComb[4]);
+  bool isStraightPath(LATERAL_CASES sideComb[NUM_LAYERS]);
 
-  /* Determina si los valores de 4 primitivas forman una trayectoria
-     Los valores tienen que ir dispuestos en el orden de capa:
-     0    -> Capa más próxima al centro del detector,
-     1, 2 -> Siguientes capas
-     3    -> Capa más externa */
   void evaluatePathQuality(MuonPathPtr &mPath);
   void evaluateLateralQuality(int latIdx, MuonPathPtr &mPath, LATQ_TYPE *latQuality);
-  /* Función que evalua, mediante el criterio de mean-timer, la bondad
-     de una trayectoria. Involucra 3 celdas en 3 capas distintas, ordenadas
-     de abajo arriba siguiendo el índice del array.
-     Es decir:
-     0-> valor temporal de la capa inferior,
-     1-> valor temporal de la capa intermedia
-     2-> valor temporal de la capa superior
-     Internamente implementa diferentes funciones según el paso de la
-     partícula dependiendo de la lateralidad por la que atraviesa cada
-     celda (p. ej.: LLR => Left (inferior); Left (media); Right (superior))
-     
-     En FPGA debería aplicarse la combinación adecuada para cada caso,
-     haciendo uso de funciones que generen el código en tiempo de síntesis,
-     aunque la función software diseñada debería ser exportable directamente
-     a VHDL */
   void validate(LATERAL_CASES sideComb[3], int layerIndex[3], MuonPathPtr &mPath, PARTIAL_LATQ_TYPE *latq);
 
   int eqMainBXTerm(LATERAL_CASES sideComb[2], int layerIdx[2], MuonPathPtr &mPath);
@@ -132,25 +82,11 @@ private:
 
   // Private attributes
 
-  /* Combinaciones verticales de 3 celdas sobre las que se va a aplicar el
-     mean-timer */
-  static const int LAYER_ARRANGEMENTS_[4][3];
-
-  /* El máximo de combinaciones de lateralidad para 4 celdas es 16 grupos
-     Es feo reservar todo el posible bloque de memoria de golpe, puesto que
-     algunas combinaciones no serán válidas, desperdiciando parte de la
-     memoria de forma innecesaria, pero la alternativa es complicar el
-     código con vectores y reserva dinámica de memoria y, ¡bueno! ¡si hay
-     que ir se va, pero ir p'a n'á es tontería! */
-  LATERAL_CASES lateralities_[16][4];
-  LATQ_TYPE latQuality_[16];
+  static const int LAYER_ARRANGEMENTS_[NUM_LAYERS][NUM_CELL_COMB];
+  LATERAL_CASES lateralities_[NUM_LATERALITIES][NUM_LAYERS];
+  LATQ_TYPE latQuality_[NUM_LATERALITIES];
 
   int totalNumValLateralities_;
-  /* Posiciones horizontales de cada celda (una por capa), en unidades de
-     semilongitud de celda, relativas a la celda de la capa inferior
-     (capa 0). Pese a que la celda de la capa 0 siempre está en posición
-     0 respecto de sí misma, se incluye en el array para que el código que
-     hace el procesamiento sea más homogéneo y sencillo */
 
   int bxTolerance_;
   MP_QUALITY minQuality_;
@@ -159,7 +95,7 @@ private:
   double chi2Th_;
   double chi2corTh_;
   double tanPhiTh_;
-  int cellLayout_[4];
+  int cellLayout_[NUM_LAYERS];
   bool use_LSB_;
   double tanPsi_precision_;
   double x_precision_;

@@ -10,47 +10,49 @@
 #include "L1Trigger/DTTriggerPhase2/interface/DTprimitive.h"
 #include "L1Trigger/DTTriggerPhase2/interface/DTPattern.h"
 
-typedef std::bitset<8> qualitybits;
+namespace dtbayesam {
 
-class CandidateGroup {
-public:
-  //Constructors and destructors
-  CandidateGroup();
-  CandidateGroup(DTPattern* p);
-  ~CandidateGroup();
+  typedef std::bitset<8> qualitybits;
 
-  //Hit operation procedures
-  void addHit(DTPrimitive dthit, int lay, bool isGood);
-  void removeHit(DTPrimitive dthit);
+  class CandidateGroup {
+  public:
+    //Constructors and destructors
+    CandidateGroup();
+    CandidateGroup(DTPattern* p);
+    ~CandidateGroup();
 
-  //Get Methods
-  int candId() const { return candId_; };
-  int nhits() const { return nhits_; };
-  int nisGood() const { return nisGood_; };
-  int nLayerhits() const { return nLayerhits_; };
-  int nLayerUp() const { return nLayerUp_; };
-  int nLayerDown() const { return nLayerDown_; };
-  DTPrimitivePtrs candHits() const { return candHits_; };
-  qualitybits quality() const { return quality_; };
-  const DTPattern* pattern() const { return pattern_; };
+    //Hit operation procedures
+    void addHit(DTPrimitive dthit, int lay, bool isGood);
+    void removeHit(DTPrimitive dthit);
 
-  //Set Methods
-  void setCandId(int cId) { candId_ = cId; };
+    //Get Methods
+    int candId() const { return candId_; };
+    int nhits() const { return nhits_; };
+    int nisGood() const { return nisGood_; };
+    int nLayerhits() const { return nLayerhits_; };
+    int nLayerUp() const { return nLayerUp_; };
+    int nLayerDown() const { return nLayerDown_; };
+    DTPrimitivePtrs candHits() const { return candHits_; };
+    qualitybits quality() const { return quality_; };
+    const DTPattern* pattern() const { return pattern_; };
 
-  //Pattern rankers
-  bool operator>(const CandidateGroup& cOther) const;
-  bool operator==(const CandidateGroup& cOther) const;
+    //Set Methods
+    void setCandId(int cId) { candId_ = cId; };
 
-private:
-  DTPrimitivePtrs candHits_;
-  qualitybits quality_;
-  int nhits_;
-  int nLayerhits_;
-  int nLayerUp_;
-  int nLayerDown_;
-  int nisGood_;
-  DTPattern* pattern_;
-  int candId_;
-};
+    //Pattern rankers
+    bool operator>(const CandidateGroup& cOther) const;
+    bool operator==(const CandidateGroup& cOther) const;
 
+  private:
+    DTPrimitivePtrs candHits_;
+    qualitybits quality_;
+    int nhits_;
+    int nLayerhits_;
+    int nLayerUp_;
+    int nLayerDown_;
+    int nisGood_;
+    DTPattern* pattern_;
+    int candId_;
+  };
+};  // namespace dtbayesam
 #endif

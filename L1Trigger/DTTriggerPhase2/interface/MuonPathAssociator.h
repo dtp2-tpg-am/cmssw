@@ -1,11 +1,7 @@
 #ifndef Phase2L1Trigger_DTTrigger_MuonPathAssociator_cc
 #define Phase2L1Trigger_DTTrigger_MuonPathAssociator_cc
 
-#include "FWCore/Framework/interface/MakerMacros.h"
-#include "FWCore/Framework/interface/EDProducer.h"
-#include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/Run.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -16,11 +12,7 @@
 #include "DataFormats/MuonDetId/interface/DTLayerId.h"
 #include "DataFormats/MuonDetId/interface/DTWireId.h"
 #include "DataFormats/DTDigi/interface/DTDigiCollection.h"
-//#include "DataFormats/L1DTTrackFinder/interface/L1MuDTChambPhContainer.h"
-//#include "DataFormats/L1DTTrackFinder/interface/L1MuDTChambPhDigi.h"
-//#include "DataFormats/L1DTTrackFinder/interface/L1MuDTChambThContainer.h"
-//#include "DataFormats/L1DTTrackFinder/interface/L1MuDTChambThDigi.h"
-//
+
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPath.h"
 #include "L1Trigger/DTTriggerPhase2/interface/constants.h"
 
@@ -67,7 +59,7 @@ public:
 
   // Public attributes
   DTGeometry const *dtGeo_;
-  edm::ESGetToken<DTGeometry, MuonGeometryRecord> dtGeomH;
+  edm::ESGetToken<DTGeometry, MuonGeometryRecord> dtGeomH_;
 
 private:
   // Private methods
@@ -75,27 +67,26 @@ private:
                        std::vector<metaPrimitive> &inMPaths,
                        std::vector<metaPrimitive> &outMPaths);
 
-  //  void associate(metaPrimitive MP, std::vector<metaPrimitive> &outMP);
 
   bool hasPosRF(int wh, int sec) { return wh > 0 || (wh == 0 && sec % 4 > 1); }
 
   // Private attributes
-  bool debug;
-  bool clean_chi2_correlation;
-  bool useBX_correlation;
-  bool allow_confirmation;
-  double dT0_correlate_TP;
-  double dBX_correlate_TP;
-  double dTanPsi_correlate_TP;
-  double minx_match_2digis;
-  double chi2corTh;
-  bool use_LSB;
-  double tanPsi_precision;
-  double x_precision;
+  bool debug_;
+  bool clean_chi2_correlation_;
+  bool useBX_correlation_;
+  bool allow_confirmation_;
+  double dT0_correlate_TP_;
+  double dBX_correlate_TP_;
+  double dTanPsi_correlate_TP_;
+  double minx_match_2digis_;
+  double chi2corTh_;
+  bool use_LSB_;
+  double tanPsi_precision_;
+  double x_precision_;
 
   //shift
-  edm::FileInPath shift_filename;
-  std::map<int, float> shiftinfo;
+  edm::FileInPath shift_filename_;
+  std::map<int, float> shiftinfo_;
 };
 
 #endif

@@ -1,15 +1,5 @@
-
-#ifndef Phase2L1Trigger_DTTrigger_InitialGrouping_cc
-#define Phase2L1Trigger_DTTrigger_InitialGrouping_cc
-
-#include "FWCore/Framework/interface/MakerMacros.h"
-#include "FWCore/Framework/interface/EDProducer.h"
-#include "FWCore/Framework/interface/ESHandle.h"
-#include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/EventSetup.h"
-#include "FWCore/Framework/interface/Run.h"
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#ifndef Phase2L1Trigger_DTTrigger_InitialGrouping_h
+#define Phase2L1Trigger_DTTrigger_InitialGrouping_h
 
 #include "DataFormats/MuonDetId/interface/DTChamberId.h"
 #include "DataFormats/MuonDetId/interface/DTSuperLayerId.h"
@@ -22,20 +12,9 @@
 
 #include "L1Trigger/DTTriggerPhase2/interface/MotherGrouping.h"
 
-#include "CalibMuon/DTDigiSync/interface/DTTTrigBaseSync.h"
-#include "CalibMuon/DTDigiSync/interface/DTTTrigSyncFactory.h"
-
-#include "L1Trigger/DTSectorCollector/interface/DTSectCollPhSegm.h"
-#include "L1Trigger/DTSectorCollector/interface/DTSectCollThSegm.h"
-
-#include "Geometry/Records/interface/MuonGeometryRecord.h"
-#include "Geometry/DTGeometry/interface/DTGeometry.h"
-#include "Geometry/DTGeometry/interface/DTLayer.h"
-
 #include <iostream>
 #include <fstream>
 
-#define MAX_VERT_ARRANG 4
 
 // ===============================================================================
 // Previous definitions and declarations
@@ -54,29 +33,32 @@
                 ---------
 */
 
-/* Cell's combination, following previous labeling, to obtain every possible  muon's path. Others cells combinations imply non straight paths */
-constexpr int CHANNELS_PATH_ARRANGEMENTS[8][4] = {
+
+namespace dtamgrouping {
+  /* Cell's combination, following previous labeling, to obtain every possible  muon's path. 
+     Others cells combinations imply non straight paths */
+  constexpr int CHANNELS_PATH_ARRANGEMENTS[8][4] = {
     {0, 1, 3, 6}, {0, 1, 3, 7}, {0, 1, 4, 7}, {0, 1, 4, 8}, {0, 2, 4, 7}, {0, 2, 4, 8}, {0, 2, 5, 8}, {0, 2, 5, 9}};
-
-/* For each of the previous cell's combinations, this array stores the associated cell's displacement, relative to lower layer cell, measured in semi-cell length units */
-
-constexpr int CELL_HORIZONTAL_LAYOUTS[8][4] = {{0, -1, -2, -3},
-                                               {0, -1, -2, -1},
-                                               {0, -1, 0, -1},
-                                               {0, -1, 0, 1},
-                                               {0, 1, 0, -1},
-                                               {0, 1, 0, 1},
-                                               {0, 1, 2, 1},
+  
+  /* For each of the previous cell's combinations, this array stores the associated cell's 
+     displacement, relative to lower layer cell, measured in semi-cell length units */
+  
+  constexpr int CELL_HORIZONTAL_LAYOUTS[8][4] = {{0, -1, -2, -3},
+						 {0, -1, -2, -1},
+						 {0, -1, 0, -1},
+						 {0, -1, 0, 1},
+						 {0, 1, 0, -1},
+						 {0, 1, 0, 1},
+						 {0, 1, 2, 1},
                                                {0, 1, 2, 3}};
+}
+
 
 // ===============================================================================
 // Class declarations
 // ===============================================================================
 
 class InitialGrouping : public MotherGrouping {
-  typedef std::map<DTChamberId, DTDigiCollection, std::less<DTChamberId> > DTDigiMap;
-  typedef DTDigiMap::iterator DTDigiMap_iterator;
-  typedef DTDigiMap::const_iterator DTDigiMap_const_iterator;
 
 public:
   // Constructors and destructor
@@ -105,15 +87,13 @@ private:
   bool isEqualComb2Previous(DTPrimitives& ptr);
 
   // Private attributes
-  bool debug;
-  std::string ttrig_filename;
-  std::map<int, float> ttriginfo;
+  bool debug_;
 
-  DTPrimitives muxInChannels[NUM_CELLS_PER_BLOCK];
-  DTPrimitives channelIn[NUM_LAYERS][NUM_CH_PER_LAYER];
-  DTPrimitives chInDummy;
-  int prevTDCTimeStamps[4];
-  int currentBaseChannel;
+  DTPrimitives muxInChannels_[NUM_CELLS_PER_BLOCK];
+  DTPrimitives channelIn_[NUM_LAYERS][NUM_CH_PER_LAYER];
+  DTPrimitives chInDummy_;
+  int prevTDCTimeStamps_[4];
+  int currentBaseChannel_;
 };
 
 #endif

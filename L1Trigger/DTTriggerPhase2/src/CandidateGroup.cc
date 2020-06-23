@@ -1,5 +1,8 @@
 #include "L1Trigger/DTTriggerPhase2/interface/CandidateGroup.h"
+
 #include <iostream>
+
+using namespace dtbayesam;
 
 //------------------------------------------------------------------
 //--- Constructores y destructores

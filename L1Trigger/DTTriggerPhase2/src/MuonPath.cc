@@ -1,26 +1,23 @@
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPath.h"
 
-#include <cstring>  // Para función "memcpy"
 #include "math.h"
 #include <iostream>
 
 MuonPath::MuonPath() {
-  //    std::cout<<"Creando un 'MuonPath'"<<std::endl;
-
   quality_ = NOPATH;
   baseChannelId_ = -1;
 
-  for (int i = 0; i <= 7; i++) {
+  for (int i = 0; i < NUM_LAYERS_2SL; i++) {
     prim_.push_back(DTPrimitivePtr(new DTPrimitive()));
   }
 
-  nprimitives_ = 4;
+  nprimitives_ = NUM_LAYERS;
   bxTimeValue_ = -1;
   bxNumId_ = -1;
   tanPhi_ = 0;
   horizPos_ = 0;
   chiSquare_ = 0;
-  for (int i = 0; i <= 3; i++) {
+  for (int i = 0; i < NUM_LAYERS; i++) {
     lateralComb_[i] = LEFT;
     setXCoorCell(0, i);
     setDriftDistance(0, i);
@@ -29,9 +26,9 @@ MuonPath::MuonPath() {
 
 MuonPath::MuonPath(DTPrimitivePtrs &ptrPrimitive, int nprimUp, int nprimDown) {
   if (nprimUp > 0 && nprimDown > 0)
-    nprimitives_ = 8;  //Instead of nprimUp + nprimDown;
+    nprimitives_ = NUM_LAYERS_2SL;  //Instead of nprimUp + nprimDown;
   else {
-    nprimitives_ = 4;
+    nprimitives_ = NUM_LAYERS;
   }
   nprimitivesUp_ = nprimUp;
   nprimitivesDown_ = nprimDown;
@@ -60,9 +57,9 @@ MuonPath::MuonPath(DTPrimitivePtrs &ptrPrimitive, int nprimUp, int nprimDown) {
 
 MuonPath::MuonPath(DTPrimitives &ptrPrimitive, int nprimUp, int nprimDown) {
   if (nprimUp > 0 && nprimDown > 0)
-    nprimitives_ = 8;  //Instead of nprimUp + nprimDown;
+    nprimitives_ = NUM_LAYERS_2SL;  //Instead of nprimUp + nprimDown;
   else {
-    nprimitives_ = 4;
+    nprimitives_ = NUM_LAYERS;
   }
   nprimitivesUp_ = nprimUp;
   nprimitivesDown_ = nprimDown;
@@ -90,7 +87,7 @@ MuonPath::MuonPath(DTPrimitives &ptrPrimitive, int nprimUp, int nprimDown) {
 }
 
 MuonPath::MuonPath(MuonPathPtr &ptr) {
-  //  std::cout<<"Clonando un 'MuonPath'"<<std::endl;
+
   setRawId(ptr->rawId());
   setPhi(ptr->phi());
   setPhiB(ptr->phiB());
@@ -120,20 +117,18 @@ MuonPath::MuonPath(MuonPathPtr &ptr) {
 //--- Public
 //------------------------------------------------------------------
 void MuonPath::setPrimitive(DTPrimitivePtr &ptr, int layer) {
-  if (ptr == NULL)
+  if (ptr == nullptr)
     std::cout << "NULL 'Primitive'." << std::endl;
   prim_[layer] = std::move(ptr);
 }
 
 void MuonPath::setCellHorizontalLayout(int layout[4]) {
-  //  std::cout << "setCellHorizontalLayout" << std::endl;
-  for (int i = 0; i <= 3; i++)
+  for (int i = 0; i < NUM_LAYERS; i++)
     cellLayout_[i] = layout[i];
 }
 
 void MuonPath::setCellHorizontalLayout(const int *layout) {
-  //  std::cout << "setCellHorizontalLayout2" << std::endl;
-  for (int i = 0; i <= 3; i++)
+  for (int i = 0; i < NUM_LAYERS; i++)
     cellLayout_[i] = layout[i];
 }
 
@@ -161,7 +156,7 @@ bool MuonPath::isEqualTo(MuonPath *ptr) {
   return true;
 }
 
-bool MuonPath::isAnalyzable(void) {
+bool MuonPath::isAnalyzable() {
   short countValidHits = 0;
   for (int i = 0; i < this->nprimitives(); i++) {
     if (!this->primitive(i))
@@ -175,7 +170,7 @@ bool MuonPath::isAnalyzable(void) {
   return false;
 }
 
-bool MuonPath::completeMP(void) {
+bool MuonPath::completeMP() {
   return (prim_[0]->isValidTime() && prim_[1]->isValidTime() && prim_[2]->isValidTime() && prim_[3]->isValidTime());
 }
 
@@ -188,7 +183,7 @@ void MuonPath::setBxTimeValue(int time) {
     bxNumId_ = int(bxNumId_ + 1);
 }
 
-void MuonPath::setLateralCombFromPrimitives(void) {
+void MuonPath::setLateralCombFromPrimitives() {
   for (int i = 0; i < nprimitives_; i++) {
     if (!this->primitive(i)->isValidTime())
       continue;
@@ -197,11 +192,11 @@ void MuonPath::setLateralCombFromPrimitives(void) {
 }
 
 void MuonPath::setLateralComb(LATERAL_CASES latComb[4]) {
-  for (int i = 0; i <= 3; i++)
+  for (int i = 0; i < NUM_LAYERS; i++)
     lateralComb_[i] = latComb[i];
 }
 
 void MuonPath::setLateralComb(const LATERAL_CASES *latComb) {
-  for (int i = 0; i <= 3; i++)
+  for (int i = 0; i < NUM_LAYERS; i++)
     lateralComb_[i] = latComb[i];
 }

@@ -7,13 +7,12 @@
 //--- Constructores y destructores
 //------------------------------------------------------------------
 DTPrimitive::DTPrimitive() {
-  //std::cout<<"Creando una 'DTPrimitive'"<<std::endl;
 
   cameraId_ = -1;
   superLayerId_ = -1;
   layerId_ = -1;
   channelId_ = -1;
-  tdcTimeStamp_ = -1;  // Valor negativo => celda sin valor medido
+  tdcTimeStamp_ = -1;  
   orbit_ = -1;
   timeCorrection_ = 0;
   laterality_ = NONE;
@@ -23,8 +22,6 @@ DTPrimitive::DTPrimitive() {
 }
 
 DTPrimitive::DTPrimitive(DTPrimitivePtr& ptr) {
-  //std::cout<<"Clonando una 'DTPrimitive'"<<std::endl;
-
   setTimeCorrection(ptr->timeCorrection());
   setTDCTimeStamp(ptr->tdcTimeStamp());
   setOrbit(ptr->orbit());
@@ -39,7 +36,6 @@ DTPrimitive::DTPrimitive(DTPrimitivePtr& ptr) {
 }
 
 DTPrimitive::DTPrimitive(DTPrimitive* ptr) {
-  //std::cout<<"Clonando una 'DTPrimitive'"<<std::endl;
 
   setTimeCorrection(ptr->timeCorrection());
   setTDCTimeStamp(ptr->tdcTimeStamp());
@@ -55,18 +51,17 @@ DTPrimitive::DTPrimitive(DTPrimitive* ptr) {
 }
 
 DTPrimitive::~DTPrimitive() {
-  //std::cout<<"Destruyendo una 'DTPrimitive'"<<std::endl;
 }
 
 //------------------------------------------------------------------
-//--- Métodos públicos
+//--- Public Methods
 //------------------------------------------------------------------
 bool DTPrimitive::isValidTime(void) { return (tdcTimeStamp_ >= 0 ? true : false); }
 
 float DTPrimitive::wireHorizPos(void) {
-  // Para layers con número impar.
+  // For layers with odd-number 
   float wireHorizPos = CELL_LENGTH * channelId();
-  // Si la layer es par, hay que corregir media semi-celda.
+  // If layer is even, you must correct by half a cell
   if (layerId() == 0 || layerId() == 2)
     wireHorizPos += CELL_SEMILENGTH;
   return wireHorizPos;

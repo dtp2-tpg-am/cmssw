@@ -67,37 +67,22 @@ private:
   virtual void produce(edm::Event&, const edm::EventSetup&) override;
 
   std::unique_ptr<DTTTrigBaseSync> theSync;
-  //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
-  //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
   // ----------member data ---------------------------
   edm::EDGetTokenT<DTDigiCollection> dtDigisToken;
   edm::Handle<DTDigiCollection> DTDigiHandle;
   edm::InputTag dtDigiTag;
+  
+  static constexpr float bxspacing = 25.0; 
+  static constexpr float timeshift = 400.0;
+  static constexpr float flatcalib = 325.0;
 };
-
-//
-// constants, enums and typedefs
-//
-
-//
-// static data member definitions
-//
 
 //
 // constructors and destructor
 //
 CalibratedDigis::CalibratedDigis(const edm::ParameterSet& iConfig) {
   //register your products
-  /* Examples
-   produces<ExampleData2>();
-
-   //if do put with a label
-   produces<ExampleData2>("label");
-   
-   //if you want to put into the Run
-   produces<ExampleData2,InRun>();
-*/
   dtDigiTag = iConfig.getParameter<InputTag>("dtDigiTag");
   dtDigisToken = consumes<DTDigiCollection>(dtDigiTag);
 
@@ -124,18 +109,15 @@ CalibratedDigis::~CalibratedDigis() {
 
 // ------------ method called to produce the data  ------------
 void CalibratedDigis::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
-  //  auto cc = setWhatProduced(this);
 
   using namespace edm;
   theSync->setES(iSetup);
   iEvent.getByToken(dtDigisToken, DTDigiHandle);
   DTDigiCollection mydigis;
 
-  DTDigiCollection::DigiRangeIterator dtLayerIt;
-
-  for (dtLayerIt = DTDigiHandle->begin(); dtLayerIt != DTDigiHandle->end(); ++dtLayerIt) {
-    const DTLayerId& layerId = (*dtLayerIt).first;
-    for (DTDigiCollection::const_iterator digiIt = ((*dtLayerIt).second).first; digiIt != ((*dtLayerIt).second).second;
+  for (const auto& dtLayerIt : *DTDigiHandle) { 
+    const DTLayerId& layerId = dtLayerIt.first;
+    for (DTDigiCollection::const_iterator digiIt = dtLayerIt.second.first; digiIt != dtLayerIt.second.second;
          ++digiIt) {
       DTWireId wireId(layerId, (*digiIt).wire());
       float digiTime = (*digiIt).time();
@@ -143,15 +125,15 @@ void CalibratedDigis::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
       int number = (*digiIt).number();
       float newTime = 0;
       if (flat_calib_ != 0)
-        newTime = digiTime - 325 + 25.0 * iEvent.eventAuxiliary().bunchCrossing() + float(timeOffset_);
+        newTime = digiTime - flatcalib + bxspacing * iEvent.eventAuxiliary().bunchCrossing() + float(timeOffset_);
       else {
         if (scenario == 0)  //FIX MC
-          newTime = digiTime + 25.0 * 400;
+          newTime = digiTime + bxspacing * timeshift;
         else if (scenario == 2)  //FIX SliceTest
           newTime = digiTime;
         else
           newTime =
-              digiTime - theSync->offset(wireId) + 25.0 * iEvent.eventAuxiliary().bunchCrossing() + float(timeOffset_);
+              digiTime - theSync->offset(wireId) + bxspacing * iEvent.eventAuxiliary().bunchCrossing() + float(timeOffset_);
       }
       DTDigi newDigi(wire, newTime, number);
       mydigis.insertDigi(layerId, newDigi);
@@ -160,20 +142,6 @@ void CalibratedDigis::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   auto CorrectedDTDigiCollection = std::make_unique<DTDigiCollection>(mydigis);
   iEvent.put(std::move(CorrectedDTDigiCollection));
 }
-
-// ------------ method called once each stream before processing any runs, lumis or events  ------------
-
-// ------------ method called once each stream after processing all runs, lumis and events  ------------
-
-// ------------ method called when starting to processes a run  ------------
-
-// ------------ method called when ending the processing of a run  ------------
-
-// ------------ method called when starting to processes a luminosity block  ------------
-
-// ------------ method called when ending the processing of a luminosity block  ------------
-
-// ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(CalibratedDigis);

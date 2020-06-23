@@ -5,6 +5,8 @@
 
 #include "L1Trigger/DTTriggerPhase2/interface/DTprimitive.h"
 
+using namespace cmsdt; 
+
 class MuonPath {
 public:
   MuonPath();
@@ -40,80 +42,73 @@ public:
   void setRawId(uint32_t id) { rawId_ = id; };
 
   // getter methods
-  DTPrimitivePtr primitive(int layer) { return prim_[layer]; };
-  short nprimitives(void) { return nprimitives_; };
-  short nprimitivesDown(void) { return nprimitivesDown_; };
-  short nprimitivesUp(void) { return nprimitivesUp_; };
-  const int *cellLayout(void) { return cellLayout_; };
-  int baseChannelId(void) { return baseChannelId_; };
-  MP_QUALITY quality(void) { return quality_; };
-  int bxTimeValue(void) { return bxTimeValue_; };
-  int bxNumId(void) { return bxNumId_; };
-  float tanPhi(void) { return tanPhi_; };
-  const LATERAL_CASES *lateralComb(void) { return (lateralComb_); };
-  float horizPos(void) { return horizPos_; };
-  float chiSquare(void) { return chiSquare_; };
-  float phi(void) { return phi_; };
-  float phiB(void) { return phiB_; };
-  float xCoorCell(int cell) { return xCoorCell_[cell]; };
-  float xDriftDistance(int cell) { return xDriftDistance_[cell]; };
-  float xWirePos(int cell) { return xWirePos_[cell]; };
-  float zWirePos(int cell) { return zWirePos_[cell]; };
-  float tWireTDC(int cell) { return tWireTDC_[cell]; };
-  uint32_t rawId() { return rawId_; };
+  DTPrimitivePtr primitive(int layer) const { return prim_[layer]; };
+  short nprimitives() const { return nprimitives_; };
+  short nprimitivesDown() const { return nprimitivesDown_; };
+  short nprimitivesUp() const { return nprimitivesUp_; };
+  const int *cellLayout() const { return cellLayout_; };
+  int baseChannelId() const { return baseChannelId_; };
+  MP_QUALITY quality() const { return quality_; };
+  int bxTimeValue() const { return bxTimeValue_; };
+  int bxNumId() const { return bxNumId_; };
+  float tanPhi() const { return tanPhi_; };
+  const LATERAL_CASES *lateralComb() const { return (lateralComb_); };
+  float horizPos() const { return horizPos_; };
+  float chiSquare() const { return chiSquare_; };
+  float phi() const { return phi_; };
+  float phiB() const { return phiB_; };
+  float xCoorCell(int cell) const { return xCoorCell_[cell]; };
+  float xDriftDistance(int cell) const { return xDriftDistance_[cell]; };
+  float xWirePos(int cell) const { return xWirePos_[cell]; };
+  float zWirePos(int cell) const { return zWirePos_[cell]; };
+  float tWireTDC(int cell) const { return tWireTDC_[cell]; };
+  uint32_t rawId() const { return rawId_; };
 
   // Other methods
   bool isEqualTo(MuonPath *ptr);
-  bool isAnalyzable(void);
-  bool completeMP(void);
+  bool isAnalyzable();
+  bool completeMP();
 
 private:
   //------------------------------------------------------------------
-  //--- Datos del MuonPath
+  //---  MuonPath's data
   //------------------------------------------------------------------
   /*
-      Primitivas que forman el path. En posición 0 está el dato del canal de la
-      capa inferior, y de ahí hacia arriba. El orden es crítico.
+      Primitives that make up the path. The 0th position holds the channel ID of 
+      the lower layer. The order is critical. 
   */
   DTPrimitivePtrs prim_;  //ENSURE that there are no more than 4-8 prims
   short nprimitives_;
   short nprimitivesUp_;
   short nprimitivesDown_;
 
-  /* Posiciones horizontales de cada celda (una por capa), en unidades de
-       semilongitud de celda, relativas a la celda de la capa inferior
-       (capa 0). Pese a que la celda de la capa 0 siempre está en posición
-       0 respecto de sí misma, se incluye en el array para que el código que
-       hace el procesamiento sea más homogéneo y sencillo.
-       Estos parámetros se habían definido, en la versión muy preliminar del
-       código, en el 'PathAnalyzer'. Ahora se trasladan al 'MuonPath' para
-       que el 'PathAnalyzer' sea un único componente (y no uno por posible
-       ruta, como en la versión original) y se puede disponer en arquitectura
-       tipo pipe-line */
-  int cellLayout_[4];
+  /* Horizontal position of each cell (one per layer), in half-cell units,
+     with respect of the lower layer (layer 0). 
+  */
+  int cellLayout_[NUM_LAYERS];
   int baseChannelId_;
 
   //------------------------------------------------------------------
-  //--- Resultados tras cálculos
+  //--- Fit results: 
   //------------------------------------------------------------------
-  /* Calidad del path */
+  /* path quality */
   MP_QUALITY quality_;
 
-  /* Combinación de lateralidad */
-  LATERAL_CASES lateralComb_[4];
+  /* Lateral combination    */
+  LATERAL_CASES lateralComb_[NUM_LAYERS];
 
-  /* Tiempo del BX respecto del BX0 de la órbita en curso */
+  /* BX time value with respect to BX0 of the orbit  */
   int bxTimeValue_;
 
-  /* Número del BX dentro de una órbita */
+  /* BX number in the orbit   */
   int bxNumId_;
 
-  /* Parámetros de celda */
-  float xCoorCell_[8];       // Posicion horizontal del hit en la cámara
-  float xDriftDistance_[8];  // Distancia de deriva en la celda (sin signo)
-  float xWirePos_[8];
-  float zWirePos_[8];
-  float tWireTDC_[8];
+  /* Cell parameters   */
+  float xCoorCell_[NUM_LAYERS_2SL];       // Horizontal position of the hit in each cell
+  float xDriftDistance_[NUM_LAYERS_2SL];  // Drift distance on the cell (absolute value)
+  float xWirePos_[NUM_LAYERS_2SL];
+  float zWirePos_[NUM_LAYERS_2SL];
+  float tWireTDC_[NUM_LAYERS_2SL];
 
   float tanPhi_;
   float horizPos_;

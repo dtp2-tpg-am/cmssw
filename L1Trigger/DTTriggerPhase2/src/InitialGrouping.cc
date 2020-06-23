@@ -3,73 +3,72 @@
 using namespace edm;
 using namespace std;
 using namespace cmsdt;
+using namespace dtamgrouping;
 // ============================================================================
 // Constructors and destructor
 // ============================================================================
 InitialGrouping::InitialGrouping(const ParameterSet &pset, edm::ConsumesCollector &iC)
-    : MotherGrouping(pset, iC), currentBaseChannel(-1) {
+    : MotherGrouping(pset, iC), currentBaseChannel_(-1) {
   // Obtention of parameters
-  debug = pset.getUntrackedParameter<bool>("debug");
-  if (debug)
-    cout << "InitialGrouping: constructor" << endl;
+  debug_ = pset.getUntrackedParameter<bool>("debug");
+  if (debug_)
+    LogDebug("InitialGrouping") << "InitialGrouping: constructor" ;
 
   // Initialisation of channelIn array
   for (int lay = 0; lay < NUM_LAYERS; lay++) {
     for (int ch = 0; ch < NUM_CH_PER_LAYER; ch++) {
-      channelIn[lay][ch] = {chInDummy};
-      channelIn[lay][ch].clear();
+      channelIn_[lay][ch] = {chInDummy_};
+      channelIn_[lay][ch].clear();
     }
   }
 }
 
 InitialGrouping::~InitialGrouping() {
-  if (debug)
-    cout << "InitialGrouping: destructor" << endl;
+  if (debug_)
+    LogDebug("InitialGrouping") << "InitialGrouping: destructor" ;
 }
 
 // ============================================================================
 // Main methods (initialise, run, finish)
 // ============================================================================
 void InitialGrouping::initialise(const edm::EventSetup &iEventSetup) {
-  if (debug)
-    cout << "InitialGrouping::initialiase" << endl;
+  if (debug_)
+    LogDebug("InitialGrouping") << "InitialGrouping::initialiase" ;
 }
 
 void InitialGrouping::run(Event &iEvent,
                           const EventSetup &iEventSetup,
                           const DTDigiCollection &digis,
                           MuonPathPtrs &mpaths) {
-  if (debug)
-    cout << "InitialGrouping: run" << endl;
 
   //   This function returns the analyzable mpath collection back to the the main function
   //   so it can be fitted. This is in fact doing the so-called grouping.
 
   for (int supLayer = 0; supLayer < NUM_SUPERLAYERS; supLayer++) {  // for each SL:
-    if (debug)
-      cout << "InitialGrouping::run Reading SL" << supLayer << endl;
+    if (debug_)
+      LogDebug("InitialGrouping") << "InitialGrouping::run Reading SL" << supLayer ;
     setInChannels(&digis, supLayer);
 
     for (int baseCh = 0; baseCh < TOTAL_BTI; baseCh++) {
-      currentBaseChannel = baseCh;
-      selectInChannels(currentBaseChannel);  //map a number of wires for a given base channel
+      currentBaseChannel_ = baseCh;
+      selectInChannels(currentBaseChannel_);  //map a number of wires for a given base channel
       if (notEnoughDataInChannels())
         continue;
 
-      if (debug)
-        cout << "InitialGrouping::run --> now check pathId" << endl;
+      if (debug_)
+        LogDebug("InitialGrouping") << "InitialGrouping::run --> now check pathId" ;
       for (int pathId = 0; pathId < 8; pathId++) {
         resetPrvTDCTStamp();
-        if (debug)
-          cout << "[InitialGrouping::run] mixChannels calling" << endl;
+        if (debug_)
+          LogDebug("InitialGrouping") << "[InitialGrouping::run] mixChannels calling" ;
         mixChannels(supLayer, pathId, mpaths);
-        if (debug)
-          cout << "[InitialGrouping::run] mixChannels end" << endl;
+        if (debug_)
+          LogDebug("InitialGrouping") << "[InitialGrouping::run] mixChannels end" ;
       }
     }
   }
-  if (debug)
-    cout << "[InitialGrouping::run] end" << endl;
+  if (debug_)
+    LogDebug("InitialGrouping") << "[InitialGrouping::run] end" ;
 }
 
 void InitialGrouping::finish() { return; };
@@ -81,35 +80,34 @@ void InitialGrouping::setInChannels(const DTDigiCollection *digis, int sl) {
   //   before setting channels we need to clear
   for (int lay = 0; lay < NUM_LAYERS; lay++) {
     for (int ch = 0; ch < NUM_CH_PER_LAYER; ch++) {
-      channelIn[lay][ch].clear();
+      channelIn_[lay][ch].clear();
     }
   }
 
   // now fill with those primitives that makes sense:
-  DTDigiCollection::DigiRangeIterator dtLayerId_It;
-  for (dtLayerId_It = digis->begin(); dtLayerId_It != digis->end(); ++dtLayerId_It) {
-    const DTLayerId dtLId = (*dtLayerId_It).first;
+  for (const auto& dtLayerId_It : *digis) { 
+    const DTLayerId dtLId = dtLayerId_It.first;
     if (dtLId.superlayer() != sl + 1)
       continue;  //skip digis not in SL...
 
-    for (DTDigiCollection::const_iterator digiIt = ((*dtLayerId_It).second).first;
-         digiIt != ((*dtLayerId_It).second).second;
+    for (DTDigiCollection::const_iterator digiIt = (dtLayerId_It.second).first;
+         digiIt != (dtLayerId_It.second).second;
          ++digiIt) {
       int layer = dtLId.layer() - 1;
       int wire = (*digiIt).wire() - 1;
       int digiTIME = (*digiIt).time();
       int digiTIMEPhase2 = digiTIME;
 
-      if (debug)
-        cout << "[InitialGrouping::setInChannels] SL" << sl << " L" << layer << " : " << wire << " " << digiTIMEPhase2
-             << endl;
+      if (debug_)
+        LogDebug("InitialGrouping") << "[InitialGrouping::setInChannels] SL" << sl << " L" << layer << " : " << wire << " " << digiTIMEPhase2
+             ;
       auto dtpAux = DTPrimitive();
       dtpAux.setTDCTimeStamp(digiTIMEPhase2);
       dtpAux.setChannelId(wire);
       dtpAux.setLayerId(layer);    //  L=0,1,2,3
       dtpAux.setSuperLayerId(sl);  // SL=0,1,2
       dtpAux.setCameraId(dtLId.rawId());
-      channelIn[layer][wire].push_back(dtpAux);
+      channelIn_[layer][wire].push_back(dtpAux);
     }
   }
 }
@@ -128,60 +126,60 @@ void InitialGrouping::selectInChannels(int baseChannel) {
   // ---------
 
   // ****** LAYER 0 ******
-  muxInChannels[0] = channelIn[0][baseChannel];
+  muxInChannels_[0] = channelIn_[0][baseChannel];
 
   // ****** LAYER 1 ******
-  muxInChannels[1] = channelIn[1][baseChannel];
+  muxInChannels_[1] = channelIn_[1][baseChannel];
 
   if (baseChannel + 1 < NUM_CH_PER_LAYER)
-    muxInChannels[2] = channelIn[1][baseChannel + 1];
+    muxInChannels_[2] = channelIn_[1][baseChannel + 1];
   else
-    muxInChannels[2] = chInDummy;
+    muxInChannels_[2] = chInDummy_;
 
   // ****** LAYER 2 ******
   if (baseChannel - 1 >= 0)
-    muxInChannels[3] = channelIn[2][baseChannel - 1];
+    muxInChannels_[3] = channelIn_[2][baseChannel - 1];
   else
-    muxInChannels[3] = chInDummy;
+    muxInChannels_[3] = chInDummy_;
 
-  muxInChannels[4] = channelIn[2][baseChannel];
+  muxInChannels_[4] = channelIn_[2][baseChannel];
 
   if (baseChannel + 1 < NUM_CH_PER_LAYER)
-    muxInChannels[5] = channelIn[2][baseChannel + 1];
+    muxInChannels_[5] = channelIn_[2][baseChannel + 1];
   else
-    muxInChannels[5] = chInDummy;
+    muxInChannels_[5] = chInDummy_;
 
   // ****** LAYER 3 ******
   if (baseChannel - 1 >= 0)
-    muxInChannels[6] = channelIn[3][baseChannel - 1];
+    muxInChannels_[6] = channelIn_[3][baseChannel - 1];
   else
-    muxInChannels[6] = chInDummy;
+    muxInChannels_[6] = chInDummy_;
 
-  muxInChannels[7] = channelIn[3][baseChannel];
+  muxInChannels_[7] = channelIn_[3][baseChannel];
 
   if (baseChannel + 1 < NUM_CH_PER_LAYER)
-    muxInChannels[8] = channelIn[3][baseChannel + 1];
+    muxInChannels_[8] = channelIn_[3][baseChannel + 1];
   else
-    muxInChannels[8] = chInDummy;
+    muxInChannels_[8] = chInDummy_;
 
   if (baseChannel + 2 < NUM_CH_PER_LAYER)
-    muxInChannels[9] = channelIn[3][baseChannel + 2];
+    muxInChannels_[9] = channelIn_[3][baseChannel + 2];
   else
-    muxInChannels[9] = chInDummy;
+    muxInChannels_[9] = chInDummy_;
 }
 
 bool InitialGrouping::notEnoughDataInChannels(void) {
   // Empty layer indicators
   bool lEmpty[4];
 
-  lEmpty[0] = muxInChannels[0].empty();
+  lEmpty[0] = muxInChannels_[0].empty();
 
-  lEmpty[1] = muxInChannels[1].empty() && muxInChannels[2].empty();
+  lEmpty[1] = muxInChannels_[1].empty() && muxInChannels_[2].empty();
 
-  lEmpty[2] = muxInChannels[3].empty() && muxInChannels[4].empty() && muxInChannels[5].empty();
+  lEmpty[2] = muxInChannels_[3].empty() && muxInChannels_[4].empty() && muxInChannels_[5].empty();
 
   lEmpty[3] =
-      muxInChannels[6].empty() && muxInChannels[7].empty() && muxInChannels[8].empty() && muxInChannels[9].empty();
+      muxInChannels_[6].empty() && muxInChannels_[7].empty() && muxInChannels_[8].empty() && muxInChannels_[9].empty();
 
   // If there are at least two empty layers, you cannot link it to a possible trace
   if ((lEmpty[0] && lEmpty[1]) or (lEmpty[0] && lEmpty[2]) or (lEmpty[0] && lEmpty[3]) or (lEmpty[1] && lEmpty[2]) or
@@ -194,17 +192,17 @@ bool InitialGrouping::notEnoughDataInChannels(void) {
 
 void InitialGrouping::resetPrvTDCTStamp(void) {
   for (int i = 0; i <= 3; i++)
-    prevTDCTimeStamps[i] = -1;
+    prevTDCTimeStamps_[i] = -1;
 }
 
 bool InitialGrouping::isEqualComb2Previous(DTPrimitives &dtPrims) {
   bool answer = true;
 
   for (int i = 0; i < (int)dtPrims.size(); i++) {
-    if (prevTDCTimeStamps[i] != dtPrims[i].tdcTimeStamp()) {
+    if (prevTDCTimeStamps_[i] != dtPrims[i].tdcTimeStamp()) {
       answer = false;
       for (int j = 0; j < (int)dtPrims.size(); j++) {
-        prevTDCTimeStamps[j] = dtPrims[j].tdcTimeStamp();
+        prevTDCTimeStamps_[j] = dtPrims[j].tdcTimeStamp();
       }
       break;
     }
@@ -213,15 +211,9 @@ bool InitialGrouping::isEqualComb2Previous(DTPrimitives &dtPrims) {
 }
 
 void InitialGrouping::mixChannels(int supLayer, int pathId, MuonPathPtrs &outMuonPath) {
-  if (debug)
-    cout << "[InitialGrouping::mixChannel] begin" << endl;
+  if (debug_)
+    LogDebug("InitialGrouping") << "[InitialGrouping::mixChannel] begin" ;
   DTPrimitives data[4];
-
-  int horizLayout[4];
-  memcpy(horizLayout, CELL_HORIZONTAL_LAYOUTS[pathId], 4 * sizeof(int));
-
-  int chIdxForPath[4];
-  memcpy(chIdxForPath, CHANNELS_PATH_ARRANGEMENTS[pathId], 4 * sizeof(int));
 
   // Real amount of values extracted from each channel.
   int numPrimsPerLayer[4] = {0, 0, 0, 0};
@@ -229,7 +221,7 @@ void InitialGrouping::mixChannels(int supLayer, int pathId, MuonPathPtrs &outMuo
   int channelEmptyCnt = 0;
   for (int layer = 0; layer <= 3; layer++) {
     canal = CHANNELS_PATH_ARRANGEMENTS[pathId][layer];
-    if (muxInChannels[canal].empty())
+    if (muxInChannels_[canal].empty())
       channelEmptyCnt++;
   }
 
@@ -240,7 +232,7 @@ void InitialGrouping::mixChannels(int supLayer, int pathId, MuonPathPtrs &outMuo
   // We extract the number of elements necesary from each channel as the combination requires
   for (int layer = 0; layer <= 3; layer++) {
     canal = CHANNELS_PATH_ARRANGEMENTS[pathId][layer];
-    unsigned int maxPrimsToBeRetrieved = muxInChannels[canal].size();
+    unsigned int maxPrimsToBeRetrieved = muxInChannels_[canal].size();
     /*
     If the number of primitives is zero, in order to avoid that only one
     empty channel avoids mixing data from the other three, we, at least,
@@ -254,10 +246,10 @@ void InitialGrouping::mixChannels(int supLayer, int pathId, MuonPathPtrs &outMuo
       maxPrimsToBeRetrieved = 1;
 
     for (unsigned int items = 0; items < maxPrimsToBeRetrieved; items++) {
-      if (muxInChannels[canal].size() == 0)
+      if (muxInChannels_[canal].size() == 0)
         continue;
 
-      auto dtpAux = DTPrimitive(&(muxInChannels[canal].at(items)));
+      auto dtpAux = DTPrimitive(&(muxInChannels_[canal].at(items)));
 
       /*
         I won't allow a whole loop cycle. When a DTPrimitive has an invalid
@@ -287,8 +279,8 @@ void InitialGrouping::mixChannels(int supLayer, int pathId, MuonPathPtrs &outMuo
     }
   }
 
-  if (debug)
-    cout << "[InitialGrouping::mixChannels] filled data" << endl;
+  if (debug_)
+    LogDebug("InitialGrouping") << "[InitialGrouping::mixChannels] filled data" ;
 
   // Here we do the different combinations and send them to the output FIFO.
   int chIdx[4];
@@ -304,12 +296,12 @@ void InitialGrouping::mixChannels(int supLayer, int pathId, MuonPathPtrs &outMuo
           DTPrimitives ptrPrimitive;
           for (int i = 0; i <= 3; i++) {
             ptrPrimitive.push_back((data[i])[chIdx[i]]);
-            if (debug)
-              cout << "[InitialGrouping::mixChannels] reading " << ptrPrimitive[i].tdcTimeStamp() << endl;
+            if (debug_)
+              LogDebug("InitialGrouping") << "[InitialGrouping::mixChannels] reading " << ptrPrimitive[i].tdcTimeStamp() ;
           }
 
           auto ptrMuonPath = MuonPathPtr(new MuonPath(ptrPrimitive));
-          ptrMuonPath->setCellHorizontalLayout(horizLayout);
+          ptrMuonPath->setCellHorizontalLayout(CELL_HORIZONTAL_LAYOUTS[pathId]);
 
           /*
             This new version of this code is redundant with PathAnalyzer code,
@@ -321,11 +313,11 @@ void InitialGrouping::mixChannels(int supLayer, int pathId, MuonPathPtrs &outMuo
             both.
             Code in the PathAnalyzer should be doing nothing now.
           */
-          if (debug)
-            cout << "[InitialGrouping::mixChannels] muonPath is analyzable? " << ptrMuonPath << endl;
+          if (debug_)
+            LogDebug("InitialGrouping") << "[InitialGrouping::mixChannels] muonPath is analyzable? " << ptrMuonPath ;
           if (ptrMuonPath->isAnalyzable()) {
-            if (debug)
-              cout << "[InitialGrouping::mixChannels] YES" << endl;
+            if (debug_)
+              LogDebug("InitialGrouping") << "[InitialGrouping::mixChannels] YES" ;
             /*
             This is a very simple filter because, during the tests, it has been
             detected that many consecutive MuonPaths are duplicated mainly due
@@ -338,9 +330,9 @@ void InitialGrouping::mixChannels(int supLayer, int pathId, MuonPathPtrs &outMuo
 	    */
             if (isEqualComb2Previous(ptrPrimitive))
               continue;
-            if (debug)
-              cout << "[InitialGrouping::mixChannels] isNOT equal to previous" << endl;
-            ptrMuonPath->setBaseChannelId(currentBaseChannel);
+            if (debug_)
+              LogDebug("InitialGrouping") << "[InitialGrouping::mixChannels] isNOT equal to previous" ; 
+            ptrMuonPath->setBaseChannelId(currentBaseChannel_);
             outMuonPath.push_back(std::move(ptrMuonPath));
             ptrPrimitive.clear();
           }

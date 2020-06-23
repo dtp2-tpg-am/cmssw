@@ -31,6 +31,7 @@
 #include "DQM/DTMonitorModule/interface/DTTrigGeomUtils.h"
 
 #include "L1Trigger/DTTriggerPhase2/interface/constants.h"
+using namespace cmsdt;
 
 struct RPCMetaprimitive {
   RPCDetId rpc_id;
@@ -52,15 +53,6 @@ struct RPCMetaprimitive {
         rpc_bx(rpc_bx_construct),
         rpc_t0(rpc_t0_construct) {}
 };
-
-// change to this one if DT bx centered at zero again
-//struct RPCMetaprimitive {
-//    RPCDetId rpc_id;
-//    const RPCRecHit* rpc_cluster;
-//    GlobalPoint global_position;
-//    int rpcFlag;
-//    RPCMetaprimitive(RPCDetId rpc_id_construct, const RPCRecHit* rpc_cluster_construct, GlobalPoint global_position_construct, int rpcFlag_construct) : rpc_id(rpc_id_construct), rpc_cluster(rpc_cluster_construct), global_position(global_position_construct), rpcFlag(rpcFlag_construct) { }
-//};
 
 class RPCIntegrator {
 public:
@@ -84,7 +76,7 @@ public:
   int phiInDTTPFormat(double rpc_global_phi, int rpcSector);
   GlobalPoint RPCGlobalPosition(RPCDetId rpcId, const RPCRecHit& rpcIt) const;
   double phi_DT_MP_conv(double rpc_global_phi, int rpcSector);
-  bool hasPosRF_rpc(int wh, int sec);
+  bool hasPosRF_rpc(int wh, int sec) const;
 
   std::vector<L1Phase2MuDTPhDigi> rpcRecHits_translated_;
   std::vector<RPCMetaprimitive> RPCMetaprimitives_;
@@ -102,13 +94,13 @@ private:
   edm::ESGetToken<DTGeometry, MuonGeometryRecord> dtGeomH;
   edm::ESGetToken<RPCGeometry, MuonGeometryRecord> rpcGeomH;
 
-  double m_dt_phi_granularity_ = 65536. / 0.8;  // 65536 different values per 0.8 radian
-  double m_dt_phiB_granularity_ = 2048. / 1.4;  // 2048. different values per 1.4 radian
+  static constexpr double m_dt_phi_granularity_ = (65536. / 0.8);  // 65536 different values per 0.8 radian
+  static constexpr double m_dt_phiB_granularity_ = (2048. / 1.4);  // 2048. different values per 1.4 radian
   // Constant geometry values
   //R[stat][layer] - radius of rpc station/layer from center of CMS
-  double R_[2][2] = {{410.0, 444.8}, {492.7, 527.3}};
-  double distance_between_two_rpc_layers_ = 35;  // in cm
+  static constexpr double R_[2][2] = {{410.0, 444.8}, {492.7, 527.3}};
+  static constexpr double distance_between_two_rpc_layers_ = 35;  // in cm
+
   double shift_back_;
-  //float m_radius_rb1_layer1 = 410.0, m_radius_rb1_layer2 = 444.8, m_radius_rb2_layer1 = 492.7, m_radius_rb2_layer2 = 527.3;
 };
 #endif

@@ -1,5 +1,8 @@
 #include "L1Trigger/DTTriggerPhase2/interface/HoughGrouping.h"
 
+#include <cmath> 
+#include "TMath.h" 
+
 using namespace std;
 using namespace edm;
 using namespace cmsdt;
@@ -43,7 +46,7 @@ HoughGrouping::HoughGrouping(const ParameterSet& pset, edm::ConsumesCollector& i
   // Obtention of parameters
   debug_ = pset.getUntrackedParameter<bool>("debug");
   if (debug_)
-    cout << "HoughGrouping: constructor" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping: constructor";
 
   // HOUGH TRANSFORM CONFIGURATION
   angletan_ = pset.getUntrackedParameter<double>("angletan");
@@ -71,7 +74,7 @@ HoughGrouping::HoughGrouping(const ParameterSet& pset, edm::ConsumesCollector& i
 
 HoughGrouping::~HoughGrouping() {
   if (debug_)
-    cout << "HoughGrouping: destructor" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping: destructor" << endl;
 }
 
 // ============================================================================
@@ -79,17 +82,17 @@ HoughGrouping::~HoughGrouping() {
 // ============================================================================
 void HoughGrouping::initialise(const edm::EventSetup& iEventSetup) {
   if (debug_)
-    cout << "HoughGrouping::initialise" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::initialise" ;
 
   resetAttributes();
 
-  maxrads_ = TMath::PiOver2() - TMath::ATan(angletan_);
-  minangle_ = anglebinwidth_ * TMath::TwoPi() / 360;
+  maxrads_ = 0.5*M_PI - atan(angletan_);
+  minangle_ = anglebinwidth_ * 2*M_PI / 360;
   halfanglebins_ = TMath::Nint(maxrads_ / minangle_ + 1);
   anglebins_ = (unsigned short int)2 * halfanglebins_;
   oneanglebin_ = maxrads_ / halfanglebins_;
 
-  maxdeltaAng_ = maxdeltaAngDeg_ * TMath::TwoPi() / 360;
+  maxdeltaAng_ = maxdeltaAngDeg_ * 2*M_PI / 360;
 
   // Initialisation of anglemap. Posmap depends on the size of the chamber.
   double phi = 0;
@@ -99,7 +102,7 @@ void HoughGrouping::initialise(const edm::EventSetup& iEventSetup) {
     phi += oneanglebin_;
   }
 
-  phi = (TMath::Pi() - maxrads_);
+  phi = (M_PI - maxrads_);
   for (unsigned short int ab = halfanglebins_; ab < anglebins_; ab++) {
     anglemap_[ab] = phi;
     phi += oneanglebin_;
@@ -108,14 +111,14 @@ void HoughGrouping::initialise(const edm::EventSetup& iEventSetup) {
   linespace_ = new unsigned short int*[anglebins_];
 
   if (debug_) {
-    cout << "\nHoughGrouping::ResetAttributes - Information from the initialisation of HoughGrouping:" << endl;
-    cout << "HoughGrouping::ResetAttributes - maxrads: " << maxrads_ << endl;
-    cout << "HoughGrouping::ResetAttributes - anglebinwidth: " << anglebinwidth_ << endl;
-    cout << "HoughGrouping::ResetAttributes - minangle: " << minangle_ << endl;
-    cout << "HoughGrouping::ResetAttributes - halfanglebins: " << halfanglebins_ << endl;
-    cout << "HoughGrouping::ResetAttributes - anglebins: " << anglebins_ << endl;
-    cout << "HoughGrouping::ResetAttributes - oneanglebin: " << oneanglebin_ << endl;
-    cout << "HoughGrouping::ResetAttributes - posbinwidth: " << posbinwidth_ << endl;
+    LogDebug("HoughGrouping") << "\nHoughGrouping::ResetAttributes - Information from the initialisation of HoughGrouping:" ;
+    LogDebug("HoughGrouping") << "HoughGrouping::ResetAttributes - maxrads: " << maxrads_ ;
+    LogDebug("HoughGrouping") << "HoughGrouping::ResetAttributes - anglebinwidth: " << anglebinwidth_ ;
+    LogDebug("HoughGrouping") << "HoughGrouping::ResetAttributes - minangle: " << minangle_ ;
+    LogDebug("HoughGrouping") << "HoughGrouping::ResetAttributes - halfanglebins: " << halfanglebins_ ;
+    LogDebug("HoughGrouping") << "HoughGrouping::ResetAttributes - anglebins: " << anglebins_ ;
+    LogDebug("HoughGrouping") << "HoughGrouping::ResetAttributes - oneanglebin: " << oneanglebin_ ;
+    LogDebug("HoughGrouping") << "HoughGrouping::ResetAttributes - posbinwidth: " << posbinwidth_ ;
   }
 
   const MuonGeometryRecord& geom = iEventSetup.get<MuonGeometryRecord>();
@@ -127,12 +130,12 @@ void HoughGrouping::run(edm::Event& iEvent,
                         const DTDigiCollection& digis,
                         MuonPathPtrs& outMpath) {
   if (debug_)
-    cout << "\nHoughGrouping::run" << endl;
+    LogDebug("HoughGrouping") << "\nHoughGrouping::run" ;
 
   resetAttributes();
 
   if (debug_)
-    cout << "HoughGrouping::run - Beginning digis' loop..." << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::run - Beginning digis' loop..." ;
   LocalPoint wirePosInLay, wirePosInChamber;
   GlobalPoint wirePosGlob;
   for (DTDigiCollection::DigiRangeIterator dtLayerIdIt = digis.begin(); dtLayerIdIt != digis.end(); dtLayerIdIt++) {
@@ -141,21 +144,21 @@ void HoughGrouping::run(edm::Event& iEvent,
          digiIt != ((*dtLayerIdIt).second).second;
          digiIt++) {
       if (debug_) {
-        cout << "\nHoughGrouping::run - Digi number " << idigi_ << endl;
-        cout << "HoughGrouping::run - Wheel: " << (*dtLayerIdIt).first.wheel() << endl;
-        cout << "HoughGrouping::run - Chamber: " << (*dtLayerIdIt).first.station() << endl;
-        cout << "HoughGrouping::run - Sector: " << (*dtLayerIdIt).first.sector() << endl;
-        cout << "HoughGrouping::run - Superlayer: " << (*dtLayerIdIt).first.superLayer() << endl;
-        cout << "HoughGrouping::run - Layer: " << (*dtLayerIdIt).first.layer() << endl;
-        cout << "HoughGrouping::run - Wire: " << (*digiIt).wire() << endl;
-        cout << "HoughGrouping::run - First wire: " << lay->specificTopology().firstChannel() << endl;
-        cout << "HoughGrouping::run - Last wire: " << lay->specificTopology().lastChannel() << endl;
-        cout << "HoughGrouping::run - First wire x: "
-             << lay->specificTopology().wirePosition(lay->specificTopology().firstChannel()) << endl;
-        cout << "HoughGrouping::run - Last wire x: "
-             << lay->specificTopology().wirePosition(lay->specificTopology().lastChannel()) << endl;
-        cout << "HoughGrouping::run - Cell width: " << lay->specificTopology().cellWidth() << endl;
-        cout << "HoughGrouping::run - Cell height: " << lay->specificTopology().cellHeight() << endl;
+        LogDebug("HoughGrouping") << "\nHoughGrouping::run - Digi number " << idigi_ ;
+        LogDebug("HoughGrouping") << "HoughGrouping::run - Wheel: " << (*dtLayerIdIt).first.wheel() ;
+        LogDebug("HoughGrouping") << "HoughGrouping::run - Chamber: " << (*dtLayerIdIt).first.station() ;
+        LogDebug("HoughGrouping") << "HoughGrouping::run - Sector: " << (*dtLayerIdIt).first.sector() ;
+        LogDebug("HoughGrouping") << "HoughGrouping::run - Superlayer: " << (*dtLayerIdIt).first.superLayer() ;
+        LogDebug("HoughGrouping") << "HoughGrouping::run - Layer: " << (*dtLayerIdIt).first.layer() ;
+        LogDebug("HoughGrouping") << "HoughGrouping::run - Wire: " << (*digiIt).wire() ;
+        LogDebug("HoughGrouping") << "HoughGrouping::run - First wire: " << lay->specificTopology().firstChannel() ;
+        LogDebug("HoughGrouping") << "HoughGrouping::run - Last wire: " << lay->specificTopology().lastChannel() ;
+        LogDebug("HoughGrouping") << "HoughGrouping::run - First wire x: "
+             << lay->specificTopology().wirePosition(lay->specificTopology().firstChannel()) ;
+        LogDebug("HoughGrouping") << "HoughGrouping::run - Last wire x: "
+             << lay->specificTopology().wirePosition(lay->specificTopology().lastChannel()) ;
+        LogDebug("HoughGrouping") << "HoughGrouping::run - Cell width: " << lay->specificTopology().cellWidth() ;
+        LogDebug("HoughGrouping") << "HoughGrouping::run - Cell height: " << lay->specificTopology().cellHeight() ;
       }
       if ((*dtLayerIdIt).first.superLayer() == 2)
         continue;
@@ -189,12 +192,12 @@ void HoughGrouping::run(edm::Event& iEvent,
       }
 
       if (debug_) {
-        cout << "HoughGrouping::run - X position of the cell (chamber frame of reference): " << wirePosInChamber.x()
-             << endl;
-        cout << "HoughGrouping::run - Y position of the cell (chamber frame of reference): " << wirePosInChamber.y()
-             << endl;
-        cout << "HoughGrouping::run - Z position of the cell (chamber frame of reference): " << wirePosInChamber.z()
-             << endl;
+        LogDebug("HoughGrouping") << "HoughGrouping::run - X position of the cell (chamber frame of reference): " << wirePosInChamber.x()
+             ;
+        LogDebug("HoughGrouping") << "HoughGrouping::run - Y position of the cell (chamber frame of reference): " << wirePosInChamber.y()
+             ;
+        LogDebug("HoughGrouping") << "HoughGrouping::run - Z position of the cell (chamber frame of reference): " << wirePosInChamber.z()
+             ;
       }
 
       hitvec_.push_back({wirePosInChamber.x() - 1.05, wirePosInChamber.z()});
@@ -206,13 +209,13 @@ void HoughGrouping::run(edm::Event& iEvent,
   }
 
   if (debug_) {
-    cout << "\nHoughGrouping::run - nhits: " << nhits_ << endl;
-    cout << "HoughGrouping::run - idigi: " << idigi_ << endl;
+    LogDebug("HoughGrouping") << "\nHoughGrouping::run - nhits: " << nhits_ ;
+    LogDebug("HoughGrouping") << "HoughGrouping::run - idigi: " << idigi_ ;
   }
 
   if (hitvec_.size() == 0) {
     if (debug_)
-      cout << "HoughGrouping::run - No digis present in this chamber." << endl;
+      LogDebug("HoughGrouping") << "HoughGrouping::run - No digis present in this chamber." ;
     return;
   }
 
@@ -225,7 +228,7 @@ void HoughGrouping::run(edm::Event& iEvent,
 
   if (maxima_.size() == 0) {
     if (debug_)
-      cout << "HoughGrouping::run - No good maxima found in this event." << endl;
+      LogDebug("HoughGrouping") << "HoughGrouping::run - No good maxima found in this event." ;
     return;
   }
 
@@ -235,33 +238,22 @@ void HoughGrouping::run(edm::Event& iEvent,
 
   for (unsigned short int ican = 0; ican < maxima_.size(); ican++) {
     if (debug_)
-      cout << "\nHoughGrouping::run - Candidate number: " << ican << endl;
+      LogDebug("HoughGrouping") << "\nHoughGrouping::run - Candidate number: " << ican ;
     cands.push_back(associateHits(TheChamb, maxima_.at(ican).first, maxima_.at(ican).second));
   }
 
   // Now we filter them:
   orderAndFilter(cands, outMpath);
   if (debug_)
-    cout << "HoughGrouping::run - now we have our muonpaths! It has " << outMpath.size() << " elements" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::run - now we have our muonpaths! It has " << outMpath.size() << " elements" ;
 
   cands.clear();
-  //  short int indi = cands.size() - 1;
-  //  while (!cands.empty()) {
-  //    delete[] get<1>(cands.at(indi));
-  //    delete[] get<2>(cands.at(indi));
-  //    delete[] get<4>(cands.at(indi));
-  //    delete[] get<5>(cands.at(indi));
-  //
-  //    cands.pop_back();
-  //    indi--;
-  //  }
-  //  std::vector<std::tuple<unsigned short int, bool*, bool*, unsigned short int, double*, DTPrimitive*>>().swap(cands);
   return;
 }
 
 void HoughGrouping::finish() {
   if (debug_)
-    cout << "HoughGrouping::finish" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::finish" ;
   return;
 }
 
@@ -270,10 +262,9 @@ void HoughGrouping::finish() {
 // ============================================================================
 void HoughGrouping::resetAttributes() {
   if (debug_)
-    cout << "HoughGrouping::ResetAttributes" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::ResetAttributes" ;
   // std::vector's:
   maxima_.clear();
-  //   cands.clear();
   hitvec_.clear();
 
   // Integer-type variables:
@@ -299,7 +290,7 @@ void HoughGrouping::resetAttributes() {
 
 void HoughGrouping::resetPosElementsOfLinespace() {
   if (debug_)
-    cout << "HoughGrouping::ResetPosElementsOfLinespace" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::ResetPosElementsOfLinespace" ;
   for (unsigned short int ab = 0; ab < anglebins_; ab++) {
     delete[] linespace_[ab];
   }
@@ -307,7 +298,7 @@ void HoughGrouping::resetPosElementsOfLinespace() {
 
 void HoughGrouping::obtainGeometricalBorders(const DTLayer* lay) {
   if (debug_)
-    cout << "HoughGrouping::ObtainGeometricalBorders" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::ObtainGeometricalBorders" ;
   LocalPoint FirstWireLocal(lay->chamber()->superLayer(1)->layer(1)->specificTopology().wirePosition(
                                 lay->chamber()->superLayer(1)->layer(1)->specificTopology().firstChannel()),
                             0,
@@ -325,7 +316,7 @@ void HoughGrouping::obtainGeometricalBorders(const DTLayer* lay) {
   //   unsigned short int upsl = thestation == 4 ? 2 : 3;
   unsigned short int upsl = thestation_ == 4 ? 3 : 3;
   if (debug_)
-    cout << "HoughGrouping::ObtainGeometricalBorders - uppersuperlayer: " << upsl << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::ObtainGeometricalBorders - uppersuperlayer: " << upsl ;
 
   LocalPoint FirstWireLocalUp(lay->chamber()->superLayer(upsl)->layer(4)->specificTopology().wirePosition(
                                   lay->chamber()->superLayer(upsl)->layer(4)->specificTopology().firstChannel()),
@@ -344,17 +335,17 @@ void HoughGrouping::obtainGeometricalBorders(const DTLayer* lay) {
 
 void HoughGrouping::doHoughTransform() {
   if (debug_)
-    cout << "HoughGrouping::DoHoughTransform" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::DoHoughTransform" ;
   // First we want to obtain the number of bins in angle that we want. To do so, we will consider at first a maximum angle of
   // (in rad.) pi/2 - arctan(0.3) (i.e. ~73º) and a resolution (width of bin angle) of 2º.
 
   if (debug_) {
-    cout << "HoughGrouping::DoHoughTransform - maxrads: " << maxrads_ << endl;
-    cout << "HoughGrouping::DoHoughTransform - minangle: " << minangle_ << endl;
-    cout << "HoughGrouping::DoHoughTransform - halfanglebins: " << halfanglebins_ << endl;
-    cout << "HoughGrouping::DoHoughTransform - anglebins: " << anglebins_ << endl;
-    cout << "HoughGrouping::DoHoughTransform - oneanglebin: " << oneanglebin_ << endl;
-    cout << "HoughGrouping::DoHoughTransform - spacebins: " << spacebins_ << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::DoHoughTransform - maxrads: " << maxrads_ ;
+    LogDebug("HoughGrouping") << "HoughGrouping::DoHoughTransform - minangle: " << minangle_ ;
+    LogDebug("HoughGrouping") << "HoughGrouping::DoHoughTransform - halfanglebins: " << halfanglebins_ ;
+    LogDebug("HoughGrouping") << "HoughGrouping::DoHoughTransform - anglebins: " << anglebins_ ;
+    LogDebug("HoughGrouping") << "HoughGrouping::DoHoughTransform - oneanglebin: " << oneanglebin_ ;
+    LogDebug("HoughGrouping") << "HoughGrouping::DoHoughTransform - spacebins: " << spacebins_ ;
   }
 
   double rho = 0, phi = 0, sbx = 0;
@@ -390,11 +381,10 @@ void HoughGrouping::doHoughTransform() {
   }
 }
 
-std::vector<std::pair<double, double>> HoughGrouping::getMaximaVector() {
+PointsInPlane HoughGrouping::getMaximaVector() {
   if (debug_)
-    cout << "HoughGrouping::getMaximaVector" << endl;
-  std::vector<std::tuple<double, double, unsigned short int>> tmpvec;
-  tmpvec.clear();
+    LogDebug("HoughGrouping") << "HoughGrouping::getMaximaVector" ;
+  PointTuples tmpvec;
 
   bool flagsearched = false;
   unsigned short int numbertolookat = upperNumber_;
@@ -414,12 +404,11 @@ std::vector<std::pair<double, double>> HoughGrouping::getMaximaVector() {
 
   if (tmpvec.size() == 0) {
     if (debug_)
-      cout << "HoughGrouping::GetMaximaVector - No maxima could be found" << endl;
-    std::vector<std::pair<double, double>> finalvec;
-    finalvec.clear();
+      LogDebug("HoughGrouping") << "HoughGrouping::GetMaximaVector - No maxima could be found" ;
+    PointsInPlane finalvec;
     return finalvec;
   } else {
-    std::vector<std::pair<double, double>> finalvec = findTheMaxima(tmpvec);
+    PointsInPlane finalvec = findTheMaxima(tmpvec);
 
     // And now obtain the values of m and n of the lines.
     for (unsigned short int i = 0; i < finalvec.size(); i++)
@@ -428,9 +417,9 @@ std::vector<std::pair<double, double>> HoughGrouping::getMaximaVector() {
   }
 }
 
-std::pair<double, double> HoughGrouping::transformPair(std::pair<double, double> inputpair) {
+PointInPlane HoughGrouping::transformPair(PointInPlane inputpair) {
   if (debug_)
-    cout << "HoughGrouping::transformPair" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::transformPair" ;
   // input: (ang, pos); output: (m, n)
   if (inputpair.first == 0)
     return {1000, -1000 * inputpair.second};
@@ -438,62 +427,60 @@ std::pair<double, double> HoughGrouping::transformPair(std::pair<double, double>
     return {-1. / TMath::Tan(inputpair.first), inputpair.second / TMath::Sin(inputpair.first)};
 }
 
-std::vector<std::pair<double, double>> HoughGrouping::findTheMaxima(
-    std::vector<std::tuple<double, double, unsigned short int>> inputvec) {
+PointsInPlane HoughGrouping::findTheMaxima(
+    PointTuples inputvec) {
   if (debug_)
-    cout << "HoughGrouping::findTheMaxima" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::findTheMaxima" ;
   bool fullyreduced = false;
   unsigned short int ind = 0;
 
   std::vector<unsigned short int> chosenvec;
-  chosenvec.clear();
-  std::vector<std::pair<double, double>> resultvec;
-  resultvec.clear();
-  std::pair<double, double> finalpair = {};
+  PointsInPlane resultvec;
+  PointInPlane finalpair = {};
 
   if (debug_)
-    cout << "HoughGrouping::findTheMaxima - prewhile" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::findTheMaxima - prewhile" ;
   while (!fullyreduced) {
     if (debug_) {
-      cout << "\nHoughGrouping::findTheMaxima - New iteration" << endl;
-      cout << "HoughGrouping::findTheMaxima - inputvec size: " << inputvec.size() << endl;
-      cout << "HoughGrouping::findTheMaxima - ind: " << ind << endl;
-      cout << "HoughGrouping::findTheMaxima - maximum deltaang: " << maxdeltaAng_
-           << " and maximum deltapos: " << maxdeltaPos_ << endl;
+      LogDebug("HoughGrouping") << "\nHoughGrouping::findTheMaxima - New iteration" ;
+      LogDebug("HoughGrouping") << "HoughGrouping::findTheMaxima - inputvec size: " << inputvec.size() ;
+      LogDebug("HoughGrouping") << "HoughGrouping::findTheMaxima - ind: " << ind ;
+      LogDebug("HoughGrouping") << "HoughGrouping::findTheMaxima - maximum deltaang: " << maxdeltaAng_
+           << " and maximum deltapos: " << maxdeltaPos_ ;
     }
     chosenvec.clear();
     //calculate distances and check out the ones that are near
     if (debug_)
-      cout << "HoughGrouping::findTheMaxima - Ours have " << get<2>(inputvec.at(ind))
-           << " entries, ang.: " << get<0>(inputvec.at(ind)) << " and pos.: " << get<1>(inputvec.at(ind)) << endl;
+      LogDebug("HoughGrouping") << "HoughGrouping::findTheMaxima - Ours have " << get<2>(inputvec.at(ind))
+           << " entries, ang.: " << get<0>(inputvec.at(ind)) << " and pos.: " << get<1>(inputvec.at(ind)) ;
 
     for (unsigned short int j = ind + 1; j < inputvec.size(); j++) {
       if (getTwoDelta(inputvec.at(ind), inputvec.at(j)).first <= maxdeltaAng_ &&
           getTwoDelta(inputvec.at(ind), inputvec.at(j)).second <= maxdeltaPos_) {
         chosenvec.push_back(j);
         if (debug_)
-          cout << "HoughGrouping::findTheMaxima -     - Adding num.  " << j
+          LogDebug("HoughGrouping") << "HoughGrouping::findTheMaxima -     - Adding num.  " << j
                << " with deltaang: " << getTwoDelta(inputvec.at(ind), inputvec.at(j)).first
                << ", and deltapos: " << getTwoDelta(inputvec.at(ind), inputvec.at(j)).second << " and with "
                << get<2>(inputvec.at(j)) << " entries, ang.: " << get<0>(inputvec.at(j))
-               << " and pos.: " << get<1>(inputvec.at(j)) << endl;
+               << " and pos.: " << get<1>(inputvec.at(j)) ;
       } else if (debug_)
-        cout << "HoughGrouping::findTheMaxima -     - Ignoring num. " << j
+        LogDebug("HoughGrouping") << "HoughGrouping::findTheMaxima -     - Ignoring num. " << j
              << " with deltaang: " << getTwoDelta(inputvec.at(ind), inputvec.at(j)).first
              << ", and deltapos: " << getTwoDelta(inputvec.at(ind), inputvec.at(j)).second << " and with "
-             << get<2>(inputvec.at(j)) << " entries." << endl;
+             << get<2>(inputvec.at(j)) << " entries." ;
     }
 
     if (debug_)
-      cout << "HoughGrouping::findTheMaxima - chosenvecsize: " << chosenvec.size() << endl;
+      LogDebug("HoughGrouping") << "HoughGrouping::findTheMaxima - chosenvecsize: " << chosenvec.size() ;
 
     if (chosenvec.size() == 0) {
       if (ind + 1 >= (unsigned short int)inputvec.size())
         fullyreduced = true;
-      if ((get<0>(inputvec.at(ind)) <= maxrads_) || (get<0>(inputvec.at(ind)) >= TMath::Pi() - maxrads_))
+      if ((get<0>(inputvec.at(ind)) <= maxrads_) || (get<0>(inputvec.at(ind)) >= M_PI - maxrads_))
         resultvec.push_back({get<0>(inputvec.at(ind)), get<1>(inputvec.at(ind))});
       else if (debug_)
-        cout << "HoughGrouping::findTheMaxima -     - Candidate dropped due to an excess in angle" << endl;
+        LogDebug("HoughGrouping") << "HoughGrouping::findTheMaxima -     - Candidate dropped due to an excess in angle" ;
       ind++;
       continue;
     }
@@ -505,65 +492,60 @@ std::vector<std::pair<double, double>> HoughGrouping::findTheMaxima(
     inputvec.erase(inputvec.begin() + ind);
     for (short int j = chosenvec.size() - 1; j > -1; j--) {
       if (debug_)
-        cout << "HoughGrouping::findTheMaxima - erasing index: " << chosenvec.at(j) - 1 << endl;
+        LogDebug("HoughGrouping") << "HoughGrouping::findTheMaxima - erasing index: " << chosenvec.at(j) - 1 ;
       inputvec.erase(inputvec.begin() + chosenvec.at(j) - 1);
     }
 
     if (debug_)
-      cout << "HoughGrouping::findTheMaxima - inputvec size: " << inputvec.size() << endl;
+      LogDebug("HoughGrouping") << "HoughGrouping::findTheMaxima - inputvec size: " << inputvec.size() ;
 
     // And add the one you calculated:
-    if ((finalpair.first <= maxrads_) || (finalpair.first >= TMath::Pi() - maxrads_))
+    if ((finalpair.first <= maxrads_) || (finalpair.first >= M_PI - maxrads_))
       resultvec.push_back(finalpair);
     else if (debug_)
-      cout << "HoughGrouping::findTheMaxima -     - Candidate dropped due to an excess in angle" << endl;
+      LogDebug("HoughGrouping") << "HoughGrouping::findTheMaxima -     - Candidate dropped due to an excess in angle" ;
 
     if (ind + 1 >= (unsigned short int)inputvec.size())
       fullyreduced = true;
     if (debug_)
-      cout << "HoughGrouping::findTheMaxima - iteration ends" << endl;
+      LogDebug("HoughGrouping") << "HoughGrouping::findTheMaxima - iteration ends" ;
     ind++;
   }
   if (debug_)
-    cout << "HoughGrouping::findTheMaxima - postwhile" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::findTheMaxima - postwhile" ;
   return resultvec;
 }
 
-std::pair<double, double> HoughGrouping::getTwoDelta(std::tuple<double, double, unsigned short int> pair1,
-                                                     std::tuple<double, double, unsigned short int> pair2) {
+PointInPlane HoughGrouping::getTwoDelta(PointTuple pair1,
+                                                     PointTuple pair2) {
   if (debug_)
-    cout << "HoughGrouping::getTwoDelta" << endl;
-  return {TMath::Abs(get<0>(pair1) - get<0>(pair2)), TMath::Abs(get<1>(pair1) - get<1>(pair2))};
+    LogDebug("HoughGrouping") << "HoughGrouping::getTwoDelta" ;
+  return {abs(get<0>(pair1) - get<0>(pair2)), abs(get<1>(pair1) - get<1>(pair2))};
 }
 
-std::pair<double, double> HoughGrouping::getAveragePoint(
-    std::vector<std::tuple<double, double, unsigned short int>> inputvec,
+PointInPlane HoughGrouping::getAveragePoint(
+    PointTuples inputvec,
     unsigned short int firstindex,
     std::vector<unsigned short int> indexlist) {
   if (debug_)
-    cout << "HoughGrouping::getAveragePoint" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::getAveragePoint" ;
   std::vector<double> xs;
-  xs.clear();
   std::vector<double> ys;
-  ys.clear();
   std::vector<double> ws;
-  ws.clear();
   xs.push_back(get<0>(inputvec.at(firstindex)));
   ys.push_back(get<1>(inputvec.at(firstindex)));
-  //   ws.push_back(get<2>(inputvec.at(firstindex)));
-  ws.push_back(TMath::Exp(get<2>(inputvec.at(firstindex))));
+  ws.push_back(exp(get<2>(inputvec.at(firstindex))));
   for (unsigned short int i = 0; i < indexlist.size(); i++) {
     xs.push_back(get<0>(inputvec.at(indexlist.at(i))));
     ys.push_back(get<1>(inputvec.at(indexlist.at(i))));
-    //     ws.push_back(get<2>(inputvec.at(indexlist.at(i))));
-    ws.push_back(TMath::Exp(get<2>(inputvec.at(indexlist.at(i)))));
+    ws.push_back(exp(get<2>(inputvec.at(indexlist.at(i)))));
   }
   return {TMath::Mean(xs.begin(), xs.end(), ws.begin()), TMath::Mean(ys.begin(), ys.end(), ws.begin())};
 }
 
 ProtoCand HoughGrouping::associateHits(const DTChamber* thechamb, double m, double n) {
   if (debug_)
-    cout << "HoughGrouping::associateHits" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::associateHits" ;
   LocalPoint tmpLocal, AWireLocal, AWireLocalCh, tmpLocalCh, thepoint;
   GlobalPoint tmpGlobal, AWireGlobal;
   double tmpx = 0;
@@ -576,7 +558,7 @@ ProtoCand HoughGrouping::associateHits(const DTChamber* thechamb, double m, doub
   bool isright = false;
 
   ProtoCand returnPC;
-  for (auto l = 0; l < 8; l++) {
+  for (auto l = 0; l < NUM_LAYERS_2SL; l++) {
     returnPC.isThereHitInLayer_.push_back(false);
     returnPC.isThereNeighBourHitInLayer_.push_back(false);
     returnPC.xDistToPattern_.push_back(0);
@@ -584,16 +566,16 @@ ProtoCand HoughGrouping::associateHits(const DTChamber* thechamb, double m, doub
   }
 
   if (debug_)
-    cout << "HoughGrouping::associateHits - Beginning SL loop" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::associateHits - Beginning SL loop" ;
   for (unsigned short int sl = 1; sl < 3 + 1; sl++) {
     if (sl == 2)
       continue;
     if (debug_)
-      cout << "HoughGrouping::associateHits - SL: " << sl << endl;
+      LogDebug("HoughGrouping") << "HoughGrouping::associateHits - SL: " << sl ;
 
     for (unsigned short int l = 1; l < 4 + 1; l++) {
       if (debug_)
-        cout << "HoughGrouping::associateHits - L: " << l << endl;
+        LogDebug("HoughGrouping") << "HoughGrouping::associateHits - L: " << l ;
       isleft = false;
       isright = false;
       lat = NONE;
@@ -619,10 +601,10 @@ ProtoCand HoughGrouping::associateHits(const DTChamber* thechamb, double m, doub
       thepoint = LocalPoint(tmpx, 0, AWireLocalCh.z());
       tmpwire = thechamb->superLayer(sl)->layer(l)->specificTopology().channel(thepoint);
       if (debug_)
-        cout << "HoughGrouping::associateHits - Wire number: " << tmpwire << endl;
+        LogDebug("HoughGrouping") << "HoughGrouping::associateHits - Wire number: " << tmpwire ;
       if (debug_)
-        cout << "HoughGrouping::associateHits - First channel in layer: "
-             << thechamb->superLayer(sl)->layer(l)->specificTopology().firstChannel() << endl;
+        LogDebug("HoughGrouping") << "HoughGrouping::associateHits - First channel in layer: "
+             << thechamb->superLayer(sl)->layer(l)->specificTopology().firstChannel() ;
       if ((digimap_[abslay]).count(tmpwire)) {
         // OK, we have a digi, let's choose the laterality, if we can:
         tmpLocal = LocalPoint(thechamb->superLayer(sl)->layer(l)->specificTopology().wirePosition(tmpwire), 0, 0);
@@ -651,15 +633,15 @@ ProtoCand HoughGrouping::associateHits(const DTChamber* thechamb, double m, doub
         returnPC.dtHits_[abslay].setLaterality(lat);
       } else {
         if (debug_)
-          cout << "HoughGrouping::associateHits - No hit in the crossing cell" << endl;
+          LogDebug("HoughGrouping") << "HoughGrouping::associateHits - No hit in the crossing cell" ;
         if ((digimap_[abslay]).count(tmpwire - 1))
           isleft = true;
         if ((digimap_[abslay]).count(tmpwire + 1))
           isright = true;
         if (debug_)
-          cout << "HoughGrouping::associateHits - There is in the left: " << (int)isleft << endl;
+          LogDebug("HoughGrouping") << "HoughGrouping::associateHits - There is in the left: " << (int)isleft ;
         if (debug_)
-          cout << "HoughGrouping::associateHits - There is in the right: " << (int)isright << endl;
+          LogDebug("HoughGrouping") << "HoughGrouping::associateHits - There is in the right: " << (int)isright ;
 
         if ((isleft) && (!isright)) {
           tmpLocal = LocalPoint(thechamb->superLayer(sl)->layer(l)->specificTopology().wirePosition(tmpwire - 1), 0, 0);
@@ -724,17 +706,17 @@ ProtoCand HoughGrouping::associateHits(const DTChamber* thechamb, double m, doub
 
   setDifferenceBetweenSL(returnPC);
   if (debug_) {
-    cout << "HoughGrouping::associateHits - Finishing with the candidate. We have found the following of it:" << endl;
-    cout << "HoughGrouping::associateHits - # of layers with hits: " << returnPC.nLayersWithHits_ << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::associateHits - Finishing with the candidate. We have found the following of it:" ;
+    LogDebug("HoughGrouping") << "HoughGrouping::associateHits - # of layers with hits: " << returnPC.nLayersWithHits_ ;
     for (unsigned short int lay = 0; lay < 8; lay++) {
-      cout << "HoughGrouping::associateHits - For absolute layer: " << lay << endl;
-      cout << "HoughGrouping::associateHits - # of HQ hits: " << returnPC.isThereHitInLayer_[lay] << endl;
-      cout << "HoughGrouping::associateHits - # of LQ hits: " << returnPC.isThereNeighBourHitInLayer_[lay] << endl;
+      LogDebug("HoughGrouping") << "HoughGrouping::associateHits - For absolute layer: " << lay ;
+      LogDebug("HoughGrouping") << "HoughGrouping::associateHits - # of HQ hits: " << returnPC.isThereHitInLayer_[lay] ;
+      LogDebug("HoughGrouping") << "HoughGrouping::associateHits - # of LQ hits: " << returnPC.isThereNeighBourHitInLayer_[lay] ;
     }
-    cout << "HoughGrouping::associateHits - Abs. diff. between SL1 and SL3 hits: " << returnPC.nHitsDiff_ << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::associateHits - Abs. diff. between SL1 and SL3 hits: " << returnPC.nHitsDiff_ ;
     for (unsigned short int lay = 0; lay < 8; lay++) {
-      cout << "HoughGrouping::associateHits - For absolute layer: " << lay << endl;
-      cout << "HoughGrouping::associateHits - Abs. distance to digi: " << returnPC.xDistToPattern_[lay] << endl;
+      LogDebug("HoughGrouping") << "HoughGrouping::associateHits - For absolute layer: " << lay ;
+      LogDebug("HoughGrouping") << "HoughGrouping::associateHits - Abs. distance to digi: " << returnPC.xDistToPattern_[lay] ;
     }
   }
   return returnPC;
@@ -742,7 +724,7 @@ ProtoCand HoughGrouping::associateHits(const DTChamber* thechamb, double m, doub
 
 void HoughGrouping::setDifferenceBetweenSL(ProtoCand& tupl) {
   if (debug_)
-    cout << "HoughGrouping::setDifferenceBetweenSL" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::setDifferenceBetweenSL" ;
   short int absres = 0;
   for (unsigned short int lay = 0; lay < 8; lay++) {
     if (tupl.dtHits_[lay].channelId() > 0) {
@@ -761,7 +743,7 @@ void HoughGrouping::setDifferenceBetweenSL(ProtoCand& tupl) {
 
 void HoughGrouping::orderAndFilter(std::vector<ProtoCand>& invector, MuonPathPtrs& outMuonPath) {
   if (debug_)
-    cout << "HoughGrouping::orderAndFilter" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::orderAndFilter" ;
   // 0: # of layers with hits.
   // 1: # of hits of high quality (the expected line crosses the cell).
   // 2: # of hits of low quality (the expected line is in a neighbouring cell).
@@ -770,27 +752,26 @@ void HoughGrouping::orderAndFilter(std::vector<ProtoCand>& invector, MuonPathPtr
   // 5: DTPrimitive of the candidate.
 
   std::vector<unsigned short int> elstoremove;
-  elstoremove.clear();
   // ordering:
   if (debug_)
-    cout << "HoughGrouping::orderAndFilter - First ordering" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::orderAndFilter - First ordering" ;
   std::sort(invector.begin(), invector.end(), HoughOrdering);
 
   // Now filtering:
   unsigned short int ind = 0;
   bool filtered = false;
   if (debug_)
-    cout << "HoughGrouping::orderAndFilter - Entering while" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::orderAndFilter - Entering while" ;
   while (!filtered) {
     if (debug_)
-      cout << "\nHoughGrouping::orderAndFilter - New iteration with ind: " << ind << endl;
+      LogDebug("HoughGrouping") << "\nHoughGrouping::orderAndFilter - New iteration with ind: " << ind ;
     elstoremove.clear();
     for (unsigned short int i = ind + 1; i < invector.size(); i++) {
       if (debug_)
-        cout << "HoughGrouping::orderAndFilter - Checking index: " << i << endl;
+        LogDebug("HoughGrouping") << "HoughGrouping::orderAndFilter - Checking index: " << i ;
       for (unsigned short int lay = 0; lay < 8; lay++) {
         if (debug_)
-          cout << "HoughGrouping::orderAndFilter - Checking layer number: " << lay << endl;
+          LogDebug("HoughGrouping") << "HoughGrouping::orderAndFilter - Checking layer number: " << lay ;
         if (invector.at(i).dtHits_[lay].channelId() == invector.at(ind).dtHits_[lay].channelId() &&
             invector.at(ind).dtHits_[lay].channelId() != -1) {
           invector.at(i).nLayersWithHits_--;
@@ -805,19 +786,19 @@ void HoughGrouping::orderAndFilter(std::vector<ProtoCand>& invector, MuonPathPtr
         }
       }
       if (debug_)
-        cout << "HoughGrouping::orderAndFilter - Finished checking all the layers, now seeing if we should remove the "
+        LogDebug("HoughGrouping") << "HoughGrouping::orderAndFilter - Finished checking all the layers, now seeing if we should remove the "
                 "candidate"
-             << endl;
+             ;
 
       if (!areThereEnoughHits(invector.at(i))) {
         if (debug_)
-          cout << "HoughGrouping::orderAndFilter - This candidate shall be removed!" << endl;
+          LogDebug("HoughGrouping") << "HoughGrouping::orderAndFilter - This candidate shall be removed!" ;
         elstoremove.push_back((unsigned short int)i);
       }
     }
 
     if (debug_)
-      cout << "HoughGrouping::orderAndFilter - We are gonna erase " << elstoremove.size() << " elements" << endl;
+      LogDebug("HoughGrouping") << "HoughGrouping::orderAndFilter - We are gonna erase " << elstoremove.size() << " elements" ;
 
     for (short int el = (elstoremove.size() - 1); el > -1; el--) {
       invector.erase(invector.begin() + elstoremove.at(el));
@@ -839,10 +820,10 @@ void HoughGrouping::orderAndFilter(std::vector<ProtoCand>& invector, MuonPathPtr
 
   if (invector.size() == 0) {
     if (debug_)
-      cout << "HoughGrouping::OrderAndFilter - We do not have candidates with the minimum hits required." << endl;
+      LogDebug("HoughGrouping") << "HoughGrouping::OrderAndFilter - We do not have candidates with the minimum hits required." ;
     return;
   } else if (debug_)
-    cout << "HoughGrouping::OrderAndFilter - At the end, we have only " << invector.size() << " good paths!" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::OrderAndFilter - At the end, we have only " << invector.size() << " good paths!" ;
 
   // Packing dt primitives
   for (unsigned short int i = 0; i < invector.size(); i++) {
@@ -853,9 +834,9 @@ void HoughGrouping::orderAndFilter(std::vector<ProtoCand>& invector, MuonPathPtr
       auto dtAux = DTPrimitivePtr(new DTPrimitive(invector.at(i).dtHits_[lay]));
       ptrPrimitive.push_back(std::move(dtAux));
       if (debug_) {
-        cout << "\nHoughGrouping::OrderAndFilter - cameraid: " << ptrPrimitive[lay]->cameraId() << endl;
-        cout << "HoughGrouping::OrderAndFilter - channelid (GOOD): " << ptrPrimitive[lay]->channelId() << endl;
-        cout << "HoughGrouping::OrderAndFilter - channelid (AM):   " << ptrPrimitive[lay]->channelId() - 1 << endl;
+        LogDebug("HoughGrouping") << "\nHoughGrouping::OrderAndFilter - cameraid: " << ptrPrimitive[lay]->cameraId() ;
+        LogDebug("HoughGrouping") << "HoughGrouping::OrderAndFilter - channelid (GOOD): " << ptrPrimitive[lay]->channelId() ;
+        LogDebug("HoughGrouping") << "HoughGrouping::OrderAndFilter - channelid (AM):   " << ptrPrimitive[lay]->channelId() - 1 ;
       }
       // Fixing channel ID to AM conventions...
       if (ptrPrimitive[lay]->channelId() != -1)
@@ -873,12 +854,12 @@ void HoughGrouping::orderAndFilter(std::vector<ProtoCand>& invector, MuonPathPtr
     outMuonPath.push_back(ptrMuonPath);
     if (debug_) {
       for (unsigned short int lay = 0; lay < 8; lay++) {
-        cout << "HoughGrouping::OrderAndFilter - Final cameraID: " << outMuonPath.back()->primitive(lay)->cameraId()
-             << endl;
-        cout << "HoughGrouping::OrderAndFilter - Final channelID: " << outMuonPath.back()->primitive(lay)->channelId()
-             << endl;
-        cout << "HoughGrouping::OrderAndFilter - Final time: " << outMuonPath.back()->primitive(lay)->tdcTimeStamp()
-             << endl;
+        LogDebug("HoughGrouping") << "HoughGrouping::OrderAndFilter - Final cameraID: " << outMuonPath.back()->primitive(lay)->cameraId()
+             ;
+        LogDebug("HoughGrouping") << "HoughGrouping::OrderAndFilter - Final channelID: " << outMuonPath.back()->primitive(lay)->channelId()
+             ;
+        LogDebug("HoughGrouping") << "HoughGrouping::OrderAndFilter - Final time: " << outMuonPath.back()->primitive(lay)->tdcTimeStamp()
+             ;
       }
     }
   }
@@ -887,7 +868,7 @@ void HoughGrouping::orderAndFilter(std::vector<ProtoCand>& invector, MuonPathPtr
 
 bool HoughGrouping::areThereEnoughHits(ProtoCand& tupl) {
   if (debug_)
-    cout << "HoughGrouping::areThereEnoughHits" << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::areThereEnoughHits" ;
   unsigned short int numhitssl1 = 0;
   unsigned short int numhitssl3 = 0;
   for (unsigned short int lay = 0; lay < 8; lay++) {
@@ -898,9 +879,9 @@ bool HoughGrouping::areThereEnoughHits(ProtoCand& tupl) {
   }
 
   if (debug_)
-    cout << "HoughGrouping::areThereEnoughHits - Hits in SL1: " << numhitssl1 << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::areThereEnoughHits - Hits in SL1: " << numhitssl1 ;
   if (debug_)
-    cout << "HoughGrouping::areThereEnoughHits - Hits in SL3: " << numhitssl3 << endl;
+    LogDebug("HoughGrouping") << "HoughGrouping::areThereEnoughHits - Hits in SL3: " << numhitssl3 ;  
 
   if ((numhitssl1 != 0) && (numhitssl3 != 0)) {  // Correlated candidates
     if ((numhitssl1 + numhitssl3) >= minNLayerHits_) {
@@ -913,8 +894,6 @@ bool HoughGrouping::areThereEnoughHits(ProtoCand& tupl) {
     }
   } else if (allowUncorrelatedPatterns_) {  // Uncorrelated candidates
     return ((numhitssl1 + numhitssl3) >= minNLayerHits_);
-  } else {
-    return false;
-  }
+  } 
   return false;
 }

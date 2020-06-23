@@ -13,6 +13,7 @@
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/Run.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 #include "Geometry/Records/interface/MuonGeometryRecord.h"
 #include "Geometry/DTGeometry/interface/DTGeometry.h"
@@ -33,22 +34,11 @@
 #include "L1Trigger/DTTriggerPhase2/interface/MPQualityEnhancerFilter.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MPRedundantFilter.h"
 
-#include "L1Trigger/DTSectorCollector/interface/DTSectCollPhSegm.h"
-#include "L1Trigger/DTSectorCollector/interface/DTSectCollThSegm.h"
-
-#include "L1TriggerConfig/DTTPGConfig/interface/DTConfigManagerRcd.h"
-#include "L1TriggerConfig/DTTPGConfig/interface/DTConfigManager.h"
-
-#include "CalibMuon/DTDigiSync/interface/DTTTrigBaseSync.h"
-#include "CalibMuon/DTDigiSync/interface/DTTTrigSyncFactory.h"
-
 #include "DataFormats/MuonDetId/interface/DTChamberId.h"
 #include "DataFormats/MuonDetId/interface/DTSuperLayerId.h"
 #include "DataFormats/MuonDetId/interface/DTLayerId.h"
 #include "DataFormats/MuonDetId/interface/DTWireId.h"
 #include "DataFormats/DTDigi/interface/DTDigiCollection.h"
-#include "DataFormats/DTRecHit/interface/DTRecSegment4DCollection.h"
-#include "DataFormats/DTRecHit/interface/DTRecSegment2DCollection.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhContainer.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhDigi.h"
 
@@ -70,8 +60,21 @@ class DTTrigPhase2Prod : public edm::stream::EDProducer<> {
   typedef std::map<DTChamberId, DTDigiCollection, std::less<DTChamberId>> DTDigiMap;
   typedef DTDigiMap::iterator DTDigiMap_iterator;
   typedef DTDigiMap::const_iterator DTDigiMap_const_iterator;
+  
+  enum algo {
+    Standard = 0,
+    PseudoBayes = 1,
+    HoughTrans = 2
+  };
+  
+  enum scenario {
+    MC = 0,
+    DATA = 1, 
+    SLICE_TEST = 2
+  };
 
 public:
+
   //! Constructor
   DTTrigPhase2Prod(const edm::ParameterSet& pset);
 
@@ -79,7 +82,6 @@ public:
   ~DTTrigPhase2Prod() override;
 
   //! Create Trigger Units before starting event processing
-  //void beginJob(const edm::EventSetup & iEventSetup);
   void beginRun(edm::Run const& iRun, const edm::EventSetup& iEventSetup) override;
 
   //! Producer: process every event and generates trigger data
@@ -89,14 +91,12 @@ public:
   void endRun(edm::Run const& iRun, const edm::EventSetup& iEventSetup) override;
 
   // Methods
-  int rango(metaPrimitive mp);
-  bool outer(metaPrimitive mp);
-  bool inner(metaPrimitive mp);
-  void printmP(metaPrimitive mP);
-  void printmPC(metaPrimitive mP);
-  double trigPos(metaPrimitive mP);
-  double trigDir(metaPrimitive mp);
-  bool hasPosRF(int wh, int sec);
+  int rango (metaPrimitive mp);
+  bool outer (metaPrimitive mp);
+  bool inner (metaPrimitive mp);
+  void printmP (metaPrimitive mP);
+  void printmPC (metaPrimitive mP);
+  bool hasPosRF (int wh, int sec);
 
   // Getter-methods
   MP_QUALITY getMinimumQuality(void);
@@ -129,12 +129,11 @@ private:
   std::map<int, float> shiftinfo_;
 
   // ParameterSet
-  edm::EDGetTokenT<DTRecSegment4DCollection> dt4DSegmentsToken_;
   edm::EDGetTokenT<DTDigiCollection> dtDigisToken_;
   edm::EDGetTokenT<RPCRecHitCollection> rpcRecHitsLabel_;
 
   // Grouping attributes and methods
-  int grcode_;  // Grouping code
+  int algo_;  // Grouping code
   std::unique_ptr<MotherGrouping> grouping_obj_;
   std::unique_ptr<MuonPathAnalyzer> mpathanalyzer_;
   std::unique_ptr<MPFilter> mpathqualityenhancer_;
@@ -161,12 +160,11 @@ private:
 using namespace edm;
 using namespace std;
 
-typedef vector<DTSectCollPhSegm> SectCollPhiColl;
-typedef SectCollPhiColl::const_iterator SectCollPhiColl_iterator;
-typedef vector<DTSectCollThSegm> SectCollThetaColl;
-typedef SectCollThetaColl::const_iterator SectCollThetaColl_iterator;
-
 namespace {
+  std::unordered_map<int,int> qmap = {
+    {9,9}, {8,8}, {7,6}, {6,7}, {5,3}, {4,5}, {3,4},{2,2},{1,1}
+  };
+  
   struct {
     bool operator()(std::pair<DTLayerId*, DTDigi*> a, std::pair<DTLayerId*, DTDigi*> b) const {
       return (a.second->time() < b.second->time());
@@ -189,30 +187,30 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset) {
   useRPC_ = pset.getParameter<bool>("useRPC");
 
   // Choosing grouping scheme:
-  grcode_ = pset.getParameter<int>("grouping_code");
+  algo_ = pset.getParameter<int>("algo");
 
   edm::ConsumesCollector consumesColl(consumesCollector());
 
-  if (grcode_ == 1)
-    grouping_obj_ = std::unique_ptr<HoughGrouping>(
-        new HoughGrouping(pset.getParameter<edm::ParameterSet>("HoughGrouping"), consumesColl));
-  else if (grcode_ == 2)
-    grouping_obj_ = std::unique_ptr<PseudoBayesGrouping>(
-        new PseudoBayesGrouping(pset.getParameter<edm::ParameterSet>("PseudoBayesPattern"), consumesColl));
+  if (algo_ == PseudoBayes) {
+    grouping_obj_ = std::make_unique<PseudoBayesGrouping>(pset.getParameter<edm::ParameterSet>("PseudoBayesPattern"), consumesColl);
+  }
+  else if (algo_ == HoughTrans) {
+    grouping_obj_ = std::make_unique<HoughGrouping>(pset.getParameter<edm::ParameterSet>("HoughGrouping"), consumesColl);
+  }
   else {
-    grouping_obj_ = std::unique_ptr<InitialGrouping>(new InitialGrouping(pset, consumesColl));
+    grouping_obj_ = std::make_unique<InitialGrouping>(pset, consumesColl);
   }
 
-  if (grcode_ == 0) {
+  if (algo_ == Standard) {
     if (debug_)
-      cout << "DTp2:constructor: JM analyzer" << endl;
+      LogDebug("DTTrigPhase2Prod") << "DTp2:constructor: JM analyzer" ;
     mpathanalyzer_ = std::unique_ptr<MuonPathAnalyzerPerSL>(new MuonPathAnalyzerPerSL(pset, consumesColl));
   } else {
     if (debug_)
-      cout << "DTp2:constructor: Full chamber analyzer" << endl;
+      LogDebug("DTTrigPhase2Prod") << "DTp2:constructor: Full chamber analyzer" ;
     mpathanalyzer_ = std::unique_ptr<MuonPathAnalyzerInChamber>(new MuonPathAnalyzerInChamber(pset, consumesColl));
   }
-
+  
   // Getting buffer option
   activateBuffer_ = pset.getParameter<bool>("activateBuffer");
   superCellhalfspacewidth_ = pset.getParameter<int>("superCellspacewidth") / 2;
@@ -228,14 +226,14 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset) {
 
 DTTrigPhase2Prod::~DTTrigPhase2Prod() {
   if (debug_)
-    std::cout << "DTp2: calling destructor" << std::endl;
+    LogDebug("DTTrigPhase2Prod") << "DTp2: calling destructor" << std::endl;
 }
 
 void DTTrigPhase2Prod::beginRun(edm::Run const& iRun, const edm::EventSetup& iEventSetup) {
   if (debug_)
-    cout << "DTTrigPhase2Prod::beginRun " << iRun.id().run() << endl;
+    LogDebug("DTTrigPhase2Prod") << "DTTrigPhase2Prod::beginRun " << iRun.id().run() ;
   if (debug_)
-    cout << "DTTrigPhase2Prod::beginRun: getting DT geometry" << endl;
+    LogDebug("DTTrigPhase2Prod") << "DTTrigPhase2Prod::beginRun: getting DT geometry" ;
 
   grouping_obj_->initialise(iEventSetup);          // Grouping object initialisation
   mpathanalyzer_->initialise(iEventSetup);         // Analyzer object initialisation
@@ -249,12 +247,12 @@ void DTTrigPhase2Prod::beginRun(edm::Run const& iRun, const edm::EventSetup& iEv
 
 void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   if (debug_)
-    cout << "DTTrigPhase2Prod::produce" << endl;
+    LogDebug("DTTrigPhase2Prod") << "DTTrigPhase2Prod::produce" ;
   edm::Handle<DTDigiCollection> dtdigis;
   iEvent.getByToken(dtDigisToken_, dtdigis);
 
   if (debug_)
-    std::cout << "\t Getting the RPC RecHits" << std::endl;
+    LogDebug("DTTrigPhase2Prod") << "\t Getting the RPC RecHits" << std::endl;
   edm::Handle<RPCRecHitCollection> rpcRecHits;
   iEvent.getByToken(rpcRecHitsLabel_, rpcRecHits);
 
@@ -272,15 +270,16 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 
   // generate a list muon paths for each event!!!
   if (debug_ && activateBuffer_)
-    cout << "DTTrigPhase2Prod::produce - Getting and grouping digis per chamber using a buffer and super cells."
-         << endl;
+    LogDebug("DTTrigPhase2Prod") << "DTTrigPhase2Prod::produce - Getting and grouping digis per chamber using a buffer and super cells."
+         ;
   else if (debug_)
-    cout << "DTTrigPhase2Prod::produce - Getting and grouping digis per chamber." << endl;
+    LogDebug("DTTrigPhase2Prod") << "DTTrigPhase2Prod::produce - Getting and grouping digis per chamber." ;
 
   MuonPathPtrs muonpaths;
-  for (auto ich = dtGeo_->chambers().begin(); ich != dtGeo_->chambers().end(); ich++) {
+  ///  for (auto ich = dtGeo_->chambers().begin(); ich != dtGeo_->chambers().end(); ich++) {
+  for (auto &ich : dtGeo_->chambers()){
     // The code inside this for loop would ideally later fit inside a trigger unit (in principle, a DT station) of the future Phase 2 DT Trigger.
-    const DTChamber* chamb = (*ich);
+    const DTChamber* chamb = ich;
     DTChamberId chid = chamb->id();
     DTDigiMap_iterator dmit = digiMap.find(chid);
 
@@ -334,68 +333,66 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 
   if (dump_) {
     for (unsigned int i = 0; i < muonpaths.size(); i++) {
-      cout << iEvent.id().event() << "      mpath " << i << ": ";
+      LogDebug("DTTrigPhase2Prod") << iEvent.id().event() << "      mpath " << i << ": ";
       for (int lay = 0; lay < muonpaths.at(i)->nprimitives(); lay++)
-        cout << muonpaths.at(i)->primitive(lay)->channelId() << " ";
+        LogDebug("DTTrigPhase2Prod") << muonpaths.at(i)->primitive(lay)->channelId() << " ";
       for (int lay = 0; lay < muonpaths.at(i)->nprimitives(); lay++)
-        cout << muonpaths.at(i)->primitive(lay)->tdcTimeStamp() << " ";
+        LogDebug("DTTrigPhase2Prod") << muonpaths.at(i)->primitive(lay)->tdcTimeStamp() << " ";
       for (int lay = 0; lay < muonpaths.at(i)->nprimitives(); lay++)
-        cout << muonpaths.at(i)->primitive(lay)->laterality() << " ";
-      cout << endl;
+        LogDebug("DTTrigPhase2Prod") << muonpaths.at(i)->primitive(lay)->laterality() << " ";
+      LogDebug("DTTrigPhase2Prod");
     }
-    cout << endl;
   }
 
   // FILTER GROUPING
   MuonPathPtrs filteredmuonpaths;
-  if (grcode_ == 0) {
+  if (algo_ == Standard) {
     mpathredundantfilter_->run(iEvent, iEventSetup, muonpaths, filteredmuonpaths);
   }
 
   if (dump_) {
     for (unsigned int i = 0; i < filteredmuonpaths.size(); i++) {
-      cout << iEvent.id().event() << " filt. mpath " << i << ": ";
+      LogDebug("DTTrigPhase2Prod") << iEvent.id().event() << " filt. mpath " << i << ": ";
       for (int lay = 0; lay < filteredmuonpaths.at(i)->nprimitives(); lay++)
-        cout << filteredmuonpaths.at(i)->primitive(lay)->channelId() << " ";
+        LogDebug("DTTrigPhase2Prod") << filteredmuonpaths.at(i)->primitive(lay)->channelId() << " ";
       for (int lay = 0; lay < filteredmuonpaths.at(i)->nprimitives(); lay++)
-        cout << filteredmuonpaths.at(i)->primitive(lay)->tdcTimeStamp() << " ";
-      cout << endl;
+        LogDebug("DTTrigPhase2Prod") << filteredmuonpaths.at(i)->primitive(lay)->tdcTimeStamp() << " ";
+      LogDebug("DTTrigPhase2Prod");
     }
-    cout << endl;
   }
 
   ///////////////////////////////////////////
   /// FITTING SECTION;
   ///////////////////////////////////////////
   if (debug_)
-    cout << "MUON PATHS found: " << muonpaths.size() << " (" << filteredmuonpaths.size() << ") in event "
-         << iEvent.id().event() << endl;
+    LogDebug("DTTrigPhase2Prod") << "MUON PATHS found: " << muonpaths.size() << " (" << filteredmuonpaths.size() << ") in event "
+         << iEvent.id().event() ;
   if (debug_)
-    std::cout << "filling NmetaPrimtives" << std::endl;
+    LogDebug("DTTrigPhase2Prod") << "filling NmetaPrimtives" << std::endl;
   std::vector<metaPrimitive> metaPrimitives;
   MuonPathPtrs outmpaths;
-  if (grcode_ == 0) {
+  if (algo_ == Standard) {
     if (debug_)
-      cout << "Fitting 1SL " << endl;
+      LogDebug("DTTrigPhase2Prod") << "Fitting 1SL " ;
     mpathanalyzer_->run(iEvent, iEventSetup, filteredmuonpaths, metaPrimitives);
   } else {
     // implementation for advanced (2SL) grouping, no filter required..
     if (debug_)
-      cout << "Fitting 2SL at once " << endl;
+      LogDebug("DTTrigPhase2Prod") << "Fitting 2SL at once " ;
     mpathanalyzer_->run(iEvent, iEventSetup, muonpaths, outmpaths);
   }
 
   if (dump_) {
     for (unsigned int i = 0; i < outmpaths.size(); i++) {
-      cout << iEvent.id().event() << " mp " << i << ": " << outmpaths.at(i)->bxTimeValue() << " "
+      LogDebug("DTTrigPhase2Prod") << iEvent.id().event() << " mp " << i << ": " << outmpaths.at(i)->bxTimeValue() << " "
            << outmpaths.at(i)->horizPos() << " " << outmpaths.at(i)->tanPhi() << " " << outmpaths.at(i)->phi() << " "
-           << outmpaths.at(i)->phiB() << " " << outmpaths.at(i)->quality() << " " << outmpaths.at(i)->chiSquare() << " "
-           << endl;
+           << outmpaths.at(i)->phiB() << " " << outmpaths.at(i)->quality() << " " << outmpaths.at(i)->chiSquare() << " "         ;
+      LogDebug("DTTrigPhase2Prod");
     }
     for (unsigned int i = 0; i < metaPrimitives.size(); i++) {
-      cout << iEvent.id().event() << " mp " << i << ": ";
+      LogDebug("DTTrigPhase2Prod") << iEvent.id().event() << " mp " << i << ": ";
       printmP(metaPrimitives.at(i));
-      cout << endl;
+      LogDebug("DTTrigPhase2Prod") ;
     }
   }
 
@@ -406,17 +403,17 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   //  FILTER SECTIONS:
   ////////////////////////////////////
   if (debug_)
-    std::cout << "declaring new vector for filtered" << std::endl;
+    LogDebug("DTTrigPhase2Prod") << "declaring new vector for filtered" << std::endl;
 
   std::vector<metaPrimitive> filteredMetaPrimitives;
-  if (grcode_ == 0)
+  if (algo_ == Standard)
     mpathqualityenhancer_->run(iEvent, iEventSetup, metaPrimitives, filteredMetaPrimitives);
 
   if (dump_) {
     for (unsigned int i = 0; i < filteredMetaPrimitives.size(); i++) {
-      cout << iEvent.id().event() << " filtered mp " << i << ": ";
+      LogDebug("DTTrigPhase2Prod") << iEvent.id().event() << " filtered mp " << i << ": ";
       printmP(filteredMetaPrimitives.at(i));
-      cout << endl;
+      LogDebug("DTTrigPhase2Prod") ;
     }
   }
 
@@ -424,20 +421,20 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   metaPrimitives.erase(metaPrimitives.begin(), metaPrimitives.end());
 
   if (debug_)
-    std::cout << "DTp2 in event:" << iEvent.id().event() << " we found " << filteredMetaPrimitives.size()
+    LogDebug("DTTrigPhase2Prod") << "DTp2 in event:" << iEvent.id().event() << " we found " << filteredMetaPrimitives.size()
               << " filteredMetaPrimitives (superlayer)" << std::endl;
   if (debug_)
-    std::cout << "filteredMetaPrimitives: starting correlations" << std::endl;
+    LogDebug("DTTrigPhase2Prod") << "filteredMetaPrimitives: starting correlations" << std::endl;
 
   /////////////////////////////////////
   //// CORRELATION:
   /////////////////////////////////////
   std::vector<metaPrimitive> correlatedMetaPrimitives;
-  if (grcode_ == 0)
+  if (algo_ == Standard)
     mpathassociator_->run(iEvent, iEventSetup, dtdigis, filteredMetaPrimitives, correlatedMetaPrimitives);
   else {
     for (auto muonpath = outmpaths.begin(); muonpath != outmpaths.end(); ++muonpath) {
-      correlatedMetaPrimitives.push_back(metaPrimitive({
+      correlatedMetaPrimitives.emplace_back(metaPrimitive({
           (*muonpath)->rawId(),
           (double)(*muonpath)->bxTimeValue(),
           (*muonpath)->horizPos(),
@@ -474,63 +471,52 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     }
   }
   filteredMetaPrimitives.clear();
-  filteredMetaPrimitives.erase(filteredMetaPrimitives.begin(), filteredMetaPrimitives.end());
 
   if (debug_)
-    std::cout << "DTp2 in event:" << iEvent.id().event() << " we found " << correlatedMetaPrimitives.size()
+    LogDebug("DTTrigPhase2Prod") << "DTp2 in event:" << iEvent.id().event() << " we found " << correlatedMetaPrimitives.size()
               << " correlatedMetPrimitives (chamber)" << std::endl;
 
   if (dump_) {
-    std::cout << "DTp2 in event:" << iEvent.id().event() << " we found " << correlatedMetaPrimitives.size()
+    LogDebug("DTTrigPhase2Prod") << "DTp2 in event:" << iEvent.id().event() << " we found " << correlatedMetaPrimitives.size()
               << " correlatedMetPrimitives (chamber)" << std::endl;
-
+    
     for (unsigned int i = 0; i < correlatedMetaPrimitives.size(); i++) {
-      cout << iEvent.id().event() << " correlated mp " << i << ": ";
+      LogDebug("DTTrigPhase2Prod") << iEvent.id().event() << " correlated mp " << i << ": ";
       printmPC(correlatedMetaPrimitives.at(i));
-      cout << endl;
+      LogDebug("DTTrigPhase2Prod") << "\n";
     }
+    
   }
 
   double shift_back = 0;
-  if (scenario_ == 0)  //scope for MC
+  if (scenario_ == MC)  //scope for MC
     shift_back = 400;
-
-  if (scenario_ == 1)  //scope for data
+  else if (scenario_ == DATA)  //scope for data
     shift_back = 0;
-
-  if (scenario_ == 2)  //scope for slice test
+  else if (scenario_ == SLICE_TEST)  //scope for slice test
     shift_back = 0;
-
+  
   // RPC integration
   if (useRPC_) {
-    if (debug_)
-      std::cout << "Start integrating RPC" << std::endl;
     rpc_integrator_->initialise(iEventSetup, shift_back);
-    std::cout << "prepare MP " << endl;
     rpc_integrator_->prepareMetaPrimitives(rpcRecHits);
-    std::cout << "match with DT " << endl;
     rpc_integrator_->matchWithDTAndUseRPCTime(correlatedMetaPrimitives);
-    std::cout << "Make RPC only " << endl;
     rpc_integrator_->makeRPCOnlySegments();
-    std::cout << "Store RPC " << endl;
     rpc_integrator_->storeRPCSingleHits();
-    std::cout << "Remove RPC hits" << endl;
     rpc_integrator_->removeRPCHitsUsed();
   }
 
   /// STORING RESULTs
-
   vector<L1Phase2MuDTPhDigi> outP2Ph;
 
   // Assigning index value
   assignIndex(correlatedMetaPrimitives);
-  for (auto metaPrimitiveIt = correlatedMetaPrimitives.begin(); metaPrimitiveIt != correlatedMetaPrimitives.end();
-       ++metaPrimitiveIt) {
-    DTChamberId chId((*metaPrimitiveIt).rawId);
+  for (auto& metaPrimitiveIt : correlatedMetaPrimitives)  {
+    DTChamberId chId(metaPrimitiveIt.rawId);
     if (debug_)
-      std::cout << "looping in final vector: SuperLayerId" << chId << " x=" << (*metaPrimitiveIt).x
-                << " quality=" << (*metaPrimitiveIt).quality << " BX=" << round((*metaPrimitiveIt).t0 / 25.)
-                << " index=" << (*metaPrimitiveIt).index << std::endl;
+      LogDebug("DTTrigPhase2Prod") << "looping in final vector: SuperLayerId" << chId << " x=" << metaPrimitiveIt.x
+                << " quality=" << metaPrimitiveIt.quality << " BX=" << round(metaPrimitiveIt.t0 / 25.)
+                << " index=" << metaPrimitiveIt.index ;
 
     int sectorTP = chId.sector();
     if (sectorTP == 13)
@@ -539,28 +525,28 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       sectorTP = 10;
     sectorTP = sectorTP - 1;
     int sl = 0;
-    if ((*metaPrimitiveIt).quality < 6 || (*metaPrimitiveIt).quality == 7) {
-      if (inner((*metaPrimitiveIt)))
+    if (metaPrimitiveIt.quality < 6 || metaPrimitiveIt.quality == 7) {
+      if (inner(metaPrimitiveIt))
         sl = 1;
       else
         sl = 3;
     }
 
     if (debug_)
-      std::cout << "pushing back phase-2 dataformat carlo-federica dataformat" << std::endl;
+      LogDebug("DTTrigPhase2Prod") << "pushing back phase-2 dataformat carlo-federica dataformat" ;
     outP2Ph.push_back(L1Phase2MuDTPhDigi(
-        (int)round((*metaPrimitiveIt).t0 / 25.) - shift_back,  // ubx (m_bx) //bx en la orbita
+        (int)round(metaPrimitiveIt.t0 / 25.) - shift_back,  // ubx (m_bx) //bx en la orbita
         chId.wheel(),    // uwh (m_wheel)     // FIXME: It is not clear who provides this?
         sectorTP,        // usc (m_sector)    // FIXME: It is not clear who provides this?
         chId.station(),  // ust (m_station)
         sl,              // ust (m_station)
-        (int)round((*metaPrimitiveIt).phi * 65536. / 0.8),    // uphi (_phiAngle)
-        (int)round((*metaPrimitiveIt).phiB * 2048. / 1.4),    // uphib (m_phiBending)
-        (*metaPrimitiveIt).quality,                           // uqua (m_qualityCode)
-        (*metaPrimitiveIt).index,                             // uind (m_segmentIndex)
-        (int)round((*metaPrimitiveIt).t0) - shift_back * 25,  // ut0 (m_t0Segment)
-        (int)round((*metaPrimitiveIt).chi2 * 1000000),        // uchi2 (m_chi2Segment)
-        (*metaPrimitiveIt).rpcFlag                            // urpc (m_rpcFlag)
+        (int)round(metaPrimitiveIt.phi * 65536. / 0.8),    // uphi (_phiAngle)
+        (int)round(metaPrimitiveIt.phiB * 2048. / 1.4),    // uphib (m_phiBending)
+        metaPrimitiveIt.quality,                           // uqua (m_qualityCode)
+        metaPrimitiveIt.index,                             // uind (m_segmentIndex)
+        (int)round(metaPrimitiveIt.t0) - shift_back * 25,  // ut0 (m_t0Segment)
+        (int)round(metaPrimitiveIt.chi2 * 1000000),        // uchi2 (m_chi2Segment)
+        metaPrimitiveIt.rpcFlag                            // urpc (m_rpcFlag)
         ));
   }
 
@@ -591,35 +577,29 @@ void DTTrigPhase2Prod::endRun(edm::Run const& iRun, const edm::EventSetup& iEven
 
 bool DTTrigPhase2Prod::outer(metaPrimitive mp) {
   int counter = (mp.wi5 != -1) + (mp.wi6 != -1) + (mp.wi7 != -1) + (mp.wi8 != -1);
-  if (counter > 2)
-    return true;
-  else
-    return false;
+  return (counter > 2);
 }
 
-bool DTTrigPhase2Prod::inner(metaPrimitive mp) {
+bool DTTrigPhase2Prod::inner(metaPrimitive mp)  {
   int counter = (mp.wi1 != -1) + (mp.wi2 != -1) + (mp.wi3 != -1) + (mp.wi4 != -1);
-  if (counter > 2)
-    return true;
-  else
-    return false;
+  return (counter > 2);
 }
 
 bool DTTrigPhase2Prod::hasPosRF(int wh, int sec) { return wh > 0 || (wh == 0 && sec % 4 > 1); }
 
-void DTTrigPhase2Prod::printmP(metaPrimitive mP) {
+void DTTrigPhase2Prod::printmP(metaPrimitive mP)  {
   DTSuperLayerId slId(mP.rawId);
-  std::cout << slId << "\t"
+  cout << slId << "\t"
             << " " << setw(2) << left << mP.wi1 << " " << setw(2) << left << mP.wi2 << " " << setw(2) << left << mP.wi3
             << " " << setw(2) << left << mP.wi4 << " " << setw(5) << left << mP.tdc1 << " " << setw(5) << left
             << mP.tdc2 << " " << setw(5) << left << mP.tdc3 << " " << setw(5) << left << mP.tdc4 << " " << setw(10)
             << right << mP.x << " " << setw(9) << left << mP.tanPhi << " " << setw(5) << left << mP.t0 << " "
-            << setw(13) << left << mP.chi2 << " r:" << rango(mP);
+       << setw(13) << left << mP.chi2 << " r:" << rango(mP) << "\n";
 }
 
 void DTTrigPhase2Prod::printmPC(metaPrimitive mP) {
   DTChamberId ChId(mP.rawId);
-  std::cout << ChId << "\t"
+  cout << ChId << "\t"
             << " " << setw(2) << left << mP.wi1 << " " << setw(2) << left << mP.wi2 << " " << setw(2) << left << mP.wi3
             << " " << setw(2) << left << mP.wi4 << " " << setw(2) << left << mP.wi5 << " " << setw(2) << left << mP.wi6
             << " " << setw(2) << left << mP.wi7 << " " << setw(2) << left << mP.wi8 << " " << setw(5) << left << mP.tdc1
@@ -629,8 +609,8 @@ void DTTrigPhase2Prod::printmPC(metaPrimitive mP) {
             << setw(2) << left << mP.lat2 << " " << setw(2) << left << mP.lat3 << " " << setw(2) << left << mP.lat4
             << " " << setw(2) << left << mP.lat5 << " " << setw(2) << left << mP.lat6 << " " << setw(2) << left
             << mP.lat7 << " " << setw(2) << left << mP.lat8 << " " << setw(10) << right << mP.x << " " << setw(9)
-            << left << mP.tanPhi << " " << setw(5) << left << mP.t0 << " " << setw(13) << left << mP.chi2
-            << " r:" << rango(mP);
+       << left << mP.tanPhi << " " << setw(5) << left << mP.t0 << " " << setw(13) << left << mP.chi2
+       << " r:" << rango(mP) << "\n";
 }
 
 int DTTrigPhase2Prod::rango(metaPrimitive mp) {
@@ -659,29 +639,30 @@ void DTTrigPhase2Prod::assignIndexPerBX(std::vector<metaPrimitive>& inMPaths) {
   // First we asociate a new index to the metaprimitive depending on quality or phiB;
   uint32_t rawId = -1;
   int numP = -1;
-  for (auto metaPrimitiveIt = inMPaths.begin(); metaPrimitiveIt != inMPaths.end(); ++metaPrimitiveIt) {
+  //  for (auto metaPrimitiveIt = inMPaths.begin(); metaPrimitiveIt != inMPaths.end(); ++metaPrimitiveIt) {
+  for (auto& metaPrimitiveIt : inMPaths) {
     numP++;
-    rawId = (*metaPrimitiveIt).rawId;
-    int iOrder = assignQualityOrder((*metaPrimitiveIt));
+    rawId = metaPrimitiveIt.rawId;
+    int iOrder = assignQualityOrder(metaPrimitiveIt);
     int inf = 0;
     int numP2 = -1;
-    for (auto metaPrimitiveItN = inMPaths.begin(); metaPrimitiveItN != inMPaths.end(); ++metaPrimitiveItN) {
-      int nOrder = assignQualityOrder((*metaPrimitiveItN));
+    for (auto& metaPrimitiveItN : inMPaths) {
+      int nOrder = assignQualityOrder(metaPrimitiveItN);
       numP2++;
-      if (rawId != (*metaPrimitiveItN).rawId)
+      if (rawId != metaPrimitiveItN.rawId)
         continue;
       if (numP2 == numP) {
-        (*metaPrimitiveIt).index = inf;
+        metaPrimitiveIt.index = inf;
         break;
       } else if (iOrder < nOrder) {
         inf++;
       } else if (iOrder > nOrder) {
-        (*metaPrimitiveItN).index++;
+        metaPrimitiveItN.index++;
       } else if (iOrder == nOrder) {
-        if (fabs((*metaPrimitiveIt).phiB) >= fabs((*metaPrimitiveItN).phiB)) {
+        if (std::abs(metaPrimitiveIt.phiB) >= std::abs(metaPrimitiveItN.phiB)) {
           inf++;
-        } else if (fabs((*metaPrimitiveIt).phiB) < fabs((*metaPrimitiveItN).phiB)) {
-          (*metaPrimitiveItN).index++;
+        } else if (std::abs(metaPrimitiveIt.phiB) < std::abs(metaPrimitiveItN.phiB)) {
+          metaPrimitiveItN.index++;
         }
       }
     }  // ending second for
@@ -689,50 +670,27 @@ void DTTrigPhase2Prod::assignIndexPerBX(std::vector<metaPrimitive>& inMPaths) {
 }
 
 int DTTrigPhase2Prod::assignQualityOrder(metaPrimitive mP) {
-  if (mP.quality == 9)
-    return 9;
-  if (mP.quality == 8)
-    return 8;
-  if (mP.quality == 7)
-    return 6;
-  if (mP.quality == 6)
-    return 7;
-  if (mP.quality == 5)
-    return 3;
-  if (mP.quality == 4)
-    return 5;
-  if (mP.quality == 3)
-    return 4;
-  if (mP.quality == 2)
-    return 2;
-  if (mP.quality == 1)
-    return 1;
-  return -1;
+  if (mP.quality>9 || mP.quality<1) 
+    return -1; 
+
+  return qmap[mP.quality];
 }
 
 std::vector<DTDigiCollection*> DTTrigPhase2Prod::distribDigis(std::queue<std::pair<DTLayerId*, DTDigi*>>& inQ) {
-  //   cout << "Declarando..." << endl;
   std::vector<std::queue<std::pair<DTLayerId*, DTDigi*>>*> tmpVector;
   tmpVector.clear();
   std::vector<DTDigiCollection*> collVector;
   collVector.clear();
-  //   cout << "Empezando while..." << endl;
   while (!inQ.empty()) {
-    // Possible enhancement: build a supercell class that automatically encloses this code, i.e. that comprises
-    // a entire supercell within it.
-    //     cout << "Llamando a processDigi..." << endl;
     processDigi(inQ, tmpVector);
   }
-  //   cout << "Terminado while" << endl;
-
-  //   cout << "Comenzando for del vector..." << endl;
   for (auto& sQ : tmpVector) {
-    DTDigiCollection* tmpColl = new DTDigiCollection();
+    DTDigiCollection tmpColl; 
     while (!sQ->empty()) {
-      tmpColl->insertDigi(*(sQ->front().first), *(sQ->front().second));
+      tmpColl.insertDigi(*(sQ->front().first), *(sQ->front().second));
       sQ->pop();
     }
-    collVector.push_back(std::move(tmpColl));
+    collVector.push_back(&tmpColl);
   }
   return collVector;
 }
@@ -755,15 +713,15 @@ void DTTrigPhase2Prod::processDigi(std::queue<std::pair<DTLayerId*, DTDigi*>>& i
     inQ.pop();
     return;
   }
-  //   cout << "El tamaño del vector es nulo, o no hemos podido meter al digi en ninguna cola. Declarando nueva cola..." << endl;
-  std::queue<std::pair<DTLayerId*, DTDigi*>>* newQueue = new std::queue<std::pair<DTLayerId*, DTDigi*>>;
-  //   cout << "Introduciendo digi..." << endl;
-  std::pair<DTLayerId*, DTDigi*>* tmpPair = new std::pair<DTLayerId*, DTDigi*>;
-  tmpPair = std::move(&inQ.front());
-  newQueue->push(*tmpPair);
+
+  std::queue<std::pair<DTLayerId*, DTDigi*>> newQueue; // = new std::queue<std::pair<DTLayerId*, DTDigi*>>;
+
+  std::pair<DTLayerId*, DTDigi*> tmpPair;
+  tmpPair = std::move(inQ.front());
+  newQueue.push(tmpPair);
   inQ.pop();
-  //   cout << "Introduciendo cola nel vector..." << endl;
-  vec.push_back(std::move(newQueue));
+
+  vec.push_back(&newQueue);
   return;
 }
 

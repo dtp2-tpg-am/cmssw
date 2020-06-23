@@ -19,12 +19,10 @@
  */
 #ifndef L1Trigger_DTTriggerPhase2_constants_h
 #define L1Trigger_DTTriggerPhase2_constants_h
-#include <stdint.h>
+#include <cstdint>
 
 // Compiler option to select program mode: PRUEBA_MEZCLADOR, PRUEBA_ANALIZADOR,
 // or NONE
-// #define PRUEBA_MEZCLADOR 1
-// #define PRUEBA_ANALIZADOR 1
 
 /* Quality of the trayectories:
    NOPATH => Not valid trayectory
@@ -43,6 +41,7 @@ enum MP_QUALITY { NOPATH = 0, LOWQGHOST, LOWQ, HIGHQGHOST, HIGHQ, CLOWQ, LOWLOWQ
 // Tipos de lateralidad de traza de partícula al pasar por una celda
 enum LATERAL_CASES { LEFT = 0, RIGHT, NONE };
 
+namespace cmsdt {
 struct metaPrimitive {
   uint32_t rawId;
   double t0;
@@ -90,7 +89,7 @@ struct LATQ_TYPE {
   MP_QUALITY quality;
 };
 
-namespace cmsdt {
+
 
   /* En nanosegundos */
   constexpr int LHC_CLK_FREQ = 25;
@@ -125,9 +124,11 @@ namespace cmsdt {
   constexpr int TOTAL_BTI = 100;         // Should be the same value as NUM_CH_PER_LAYER
   constexpr int NUM_CH_PER_LAYER = 100;  // Should be the same value as TOTAL_BTI
   constexpr int NUM_LAYERS = 4;
+  constexpr int NUM_LATERALITIES = 16;
+  constexpr int NUM_CELL_COMB = 3;  
   constexpr int TOTAL_CHANNELS = (NUM_LAYERS * NUM_CH_PER_LAYER);
   constexpr int NUM_SUPERLAYERS = 3;
-
+  
   /*
  * Size of pre-mixer buffers for DTPrimitives
  *
@@ -147,8 +148,15 @@ namespace cmsdt {
  * from/to files
  */
   constexpr int PAYLOAD_ENTRIES = 9;
-  // #define PAYLOAD_ENTRIES 1
 
+  /*
+   * Size of muon primitive 
+   */
+  constexpr int NUM_LAYERS_2SL = 8; 
+  constexpr double PHI_CONV = 0.5235988; 
+
+  constexpr int BX_SHIFT = 20;
+  constexpr float Z_SHIFT_MB4 = -1.8;
 }  // namespace cmsdt
 
 #endif

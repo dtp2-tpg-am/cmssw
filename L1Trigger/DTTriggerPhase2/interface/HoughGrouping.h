@@ -8,29 +8,6 @@
 #include <iostream>
 #include <vector>
 
-// CMSSW headers
-#include "FWCore/Framework/interface/ConsumesCollector.h"
-#include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/FrameworkfwdMostUsed.h"
-#include "FWCore/Framework/interface/one/EDAnalyzer.h"
-#include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/ESHandle.h"
-#include "FWCore/Utilities/interface/ESGetToken.h"
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "FWCore/Utilities/interface/InputTag.h"
-
-#include "Geometry/Records/interface/GlobalTrackingGeometryRecord.h"
-#include "Geometry/Records/interface/MuonGeometryRecord.h"
-#include "Geometry/CommonDetUnit/interface/GeomDet.h"
-#include "Geometry/DTGeometry/interface/DTGeometry.h"
-#include "Geometry/DTGeometry/interface/DTLayer.h"
-#include "Geometry/DTGeometry/interface/DTTopology.h"
-
-// ROOT headers
-#include "TROOT.h"
-#include "TMath.h"
-
 // Other headers
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPath.h"
 #include "L1Trigger/DTTriggerPhase2/interface/DTprimitive.h"
@@ -55,6 +32,13 @@ struct ProtoCand {
   std::vector<double> xDistToPattern_;  // 4: absolute distance to all hits of the segment.
   DTPrimitives dtHits_;                 // 5: DTPrimitive of the candidate.
 };
+
+
+typedef std::pair<double, double> PointInPlane;
+typedef std::vector<PointInPlane> PointsInPlane;
+typedef std::tuple<double, double, unsigned short int> PointTuple;
+typedef std::vector<PointTuple> PointTuples;
+typedef std::map<unsigned short int, double> PointMap;
 
 class HoughGrouping : public MotherGrouping {
 public:
@@ -83,16 +67,15 @@ private:
 
   void doHoughTransform();
 
-  std::vector<std::pair<double, double>> getMaximaVector();
-  std::vector<std::pair<double, double>> findTheMaxima(
-      std::vector<std::tuple<double, double, unsigned short int>> inputvec);
+  PointsInPlane getMaximaVector();
+  PointsInPlane findTheMaxima(PointTuples inputvec);
 
-  std::pair<double, double> getTwoDelta(std::tuple<double, double, unsigned short int> pair1,
-                                        std::tuple<double, double, unsigned short int> pair2);
-  std::pair<double, double> getAveragePoint(std::vector<std::tuple<double, double, unsigned short int>> inputvec,
-                                            unsigned short int firstindex,
-                                            std::vector<unsigned short int> indexlist);
-  std::pair<double, double> transformPair(std::pair<double, double> inputpair);
+  PointInPlane getTwoDelta(PointTuple pair1,
+			   PointTuple pair2);
+  PointInPlane getAveragePoint(PointTuples inputvec,
+			       unsigned short int firstindex,
+			       std::vector<unsigned short int> indexlist);
+  PointInPlane transformPair(PointInPlane inputpair);
 
   ProtoCand associateHits(const DTChamber* thechamb, double m, double n);
 
@@ -122,12 +105,12 @@ private:
 
   unsigned short int** linespace_;
 
-  std::map<unsigned short int, double> anglemap_;
-  std::map<unsigned short int, double> posmap_;
+  PointMap anglemap_;
+  PointMap posmap_;
   std::map<unsigned short int, DTPrimitive> digimap_[8];
 
-  std::vector<std::pair<double, double>> maxima_;
-  std::vector<std::pair<double, double>> hitvec_;
+  PointsInPlane maxima_;
+  PointsInPlane hitvec_;
 };
 
 #endif

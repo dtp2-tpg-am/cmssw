@@ -46,9 +46,9 @@ private:
   int channelId_;             // Wire number
   LATERAL_CASES laterality_;  // LEFT, RIGHT, NONE
 
-  int timeCorrection_;  // Correccion temporal por electronica, etc...
-  int tdcTimeStamp_;    // Tiempo medido por el TDC
-  int orbit_;           // Número de órbita
+  int timeCorrection_;  
+  int tdcTimeStamp_;    
+  int orbit_;           
   double payLoad_[PAYLOAD_ENTRIES];
 };
 

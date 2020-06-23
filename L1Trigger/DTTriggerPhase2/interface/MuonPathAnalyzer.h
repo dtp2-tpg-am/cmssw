@@ -1,37 +1,27 @@
-#ifndef Phase2L1Trigger_DTTrigger_MuonPathAnalyzer_cc
-#define Phase2L1Trigger_DTTrigger_MuonPathAnalyzer_cc
+#ifndef Phase2L1Trigger_DTTrigger_MuonPathAnalyzer_h
+#define Phase2L1Trigger_DTTrigger_MuonPathAnalyzer_h
 
-#include "FWCore/Framework/interface/MakerMacros.h"
-#include "FWCore/Framework/interface/EDProducer.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Utilities/interface/ESGetToken.h"
 #include "FWCore/Framework/interface/ConsumesCollector.h"
 #include "FWCore/Framework/interface/FrameworkfwdMostUsed.h"
-
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/Run.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 #include "DataFormats/MuonDetId/interface/DTChamberId.h"
 #include "DataFormats/MuonDetId/interface/DTSuperLayerId.h"
 #include "DataFormats/MuonDetId/interface/DTLayerId.h"
 #include "DataFormats/MuonDetId/interface/DTWireId.h"
-#include "DataFormats/DTDigi/interface/DTDigiCollection.h"
 
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPath.h"
 #include "L1Trigger/DTTriggerPhase2/interface/constants.h"
 
-#include "CalibMuon/DTDigiSync/interface/DTTTrigBaseSync.h"
-#include "CalibMuon/DTDigiSync/interface/DTTTrigSyncFactory.h"
-
-#include "L1Trigger/DTSectorCollector/interface/DTSectCollPhSegm.h"
-#include "L1Trigger/DTSectorCollector/interface/DTSectCollThSegm.h"
-
 #include "Geometry/Records/interface/MuonGeometryRecord.h"
 #include "Geometry/DTGeometry/interface/DTGeometry.h"
-#include "Geometry/DTGeometry/interface/DTLayer.h"
 
 #include <iostream>
 #include <fstream>
@@ -71,7 +61,7 @@ private:
   // Private methods
 
   // Private attributes
-  bool debug;
+  bool debug_;
 };
 
 #endif

@@ -8,16 +8,8 @@ using namespace std;
 // ============================================================================
 MPFilter::MPFilter(const ParameterSet& pset) {
   // Obtention of parameters
-  debug = pset.getUntrackedParameter<bool>("debug");
-  if (debug)
-    cout << "MPFilter: constructor" << endl;
+  debug_ = pset.getUntrackedParameter<bool>("debug");
 }
 
 MPFilter::~MPFilter() {
-  if (debug)
-    cout << "MPFilter: destructor" << endl;
 }
-
-// ============================================================================
-// Main methods (initialise, run, finish)
-// ============================================================================
