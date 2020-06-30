@@ -200,10 +200,10 @@ void InitialGrouping::resetPrvTDCTStamp(void) {
 bool InitialGrouping::isEqualComb2Previous(DTPrimitives &dtPrims) {
   bool answer = true;
 
-  for (int i = 0; i < (int)dtPrims.size(); i++) {
+  for (int i = 0; i < NUM_LAYERS; i++) {
     if (prevTDCTimeStamps_[i] != dtPrims[i].tdcTimeStamp()) {
       answer = false;
-      for (int j = 0; j < (int)dtPrims.size(); j++) {
+      for (int j = 0; j < NUM_LAYERS; j++) {
         prevTDCTimeStamps_[j] = dtPrims[j].tdcTimeStamp();
       }
       break;
