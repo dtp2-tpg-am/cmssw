@@ -32,10 +32,30 @@ MuonPathAnalyzerPerSL::MuonPathAnalyzerPerSL(const ParameterSet &pset, edm::Cons
     throw cms::Exception("Missing Input File")
         << "MuonPathAnalyzerPerSL::MuonPathAnalyzerPerSL() -  Cannot find " << shift_filename_.fullPath();
   }
+  
   while (ifin3.good()) {
     ifin3 >> rawId >> shift;
     shiftinfo_[rawId] = shift;
   }
+
+
+  //shift eta
+
+  shift_eta_filename_ = pset.getParameter<edm::FileInPath>("shift_eta_filename");
+  std::ifstream ifin4(shift_eta_filename_.fullPath());
+  if (ifin4.fail()) {
+    throw cms::Exception("Missing Input File")
+        << "MuonPathAnalyzerPerSL::MuonPathAnalyzerPerSL() -  Cannot find " << shift_eta_filename_.fullPath();
+  }
+  
+  while (ifin4.good()) {
+    ifin4 >> rawId >> shift;
+    shiftetainfo_[rawId] = shift;
+  }
+
+
+
+
 
   chosen_sl_ = pset.getUntrackedParameter<int>("trigger_with_sl");
 
@@ -312,10 +332,11 @@ void MuonPathAnalyzerPerSL::analyze(MuonPath *inMPath, std::vector<metaPrimitive
 
 	  //etaTP
 	  if (MuonPathSLId.superLayer() == 2){
-	      double jm_y = (double)mpAux->horizPos() / 10. +shiftinfo_[wireId.rawId()];
-	      GlobalPoint jm_y_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(0.,jm_y,0));
-	      phi=jm_y_cmssw_global.z();
-	      phiB=jm_tanPhi;
+	      double jm_y = (double)mpAux->horizPos() / 10. -shiftetainfo_[wireId.rawId()];
+	      //std::cout<<"eta: shift infor for this etaTP "<<shiftetainfo_[wireId.rawId()]<<" wire:"<<wireId<<std::endl;
+	      //GlobalPoint jm_y_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(0.,jm_y,0.));
+	      phi=jm_y;//_cmssw_global.z();//we stick to local coordinates.
+	      phiB=jm_tanPhi; //no corrections are applied just the slope... to check if there is an effect on the chamber global direction
 	  }
 
           if (debug_)
