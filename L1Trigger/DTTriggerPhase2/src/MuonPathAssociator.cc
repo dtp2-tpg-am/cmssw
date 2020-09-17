@@ -897,8 +897,7 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
     }
   }
 
-  //etaTP we do not correlate with other superlayer in the same chamber so we forward them all 
-
+  //eta TP we do not correlate with other superlayer in the same chamber so we forward them all 
   std::vector<metaPrimitive> SL2metaPrimitives;
 
   for (int wh = -2; wh <= 2; wh++) {
@@ -910,10 +909,11 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
 	      DTChamberId ChId(wh, st, se);
 	      DTSuperLayerId sl2Id(wh, st, se, 2);
 	      
-	      //filterSL2
+	      //filterSL2 etaTP
 	      for (auto metaprimitiveIt = inMPaths.begin(); metaprimitiveIt != inMPaths.end(); ++metaprimitiveIt)
 		  if (metaprimitiveIt->rawId == sl2Id.rawId()){
 		      SL2metaPrimitives.push_back(*metaprimitiveIt);
+		      //std::cout<<"pushing back eta metaprimitive: ";
 		      printmPC(*metaprimitiveIt);
 		      outMPaths.push_back(*metaprimitiveIt);
 		  }
@@ -921,7 +921,7 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
       }
   }
   
-  std::cout<<"\t etaTP: added "<<SL2metaPrimitives.size()<<"to outMPaths"<<std::endl;
+  if(debug) std::cout<<"\t etaTP: added "<<SL2metaPrimitives.size()<<"to outMPaths"<<std::endl;
 
   SL2metaPrimitives.clear();
   SL2metaPrimitives.erase(SL2metaPrimitives.begin(), SL2metaPrimitives.end());

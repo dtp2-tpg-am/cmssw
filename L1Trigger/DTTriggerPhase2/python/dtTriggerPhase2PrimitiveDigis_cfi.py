@@ -7,7 +7,7 @@ from L1Trigger.DTTriggerPhase2.PseudoBayesGrouping_cfi            import PseudoB
 dtTriggerPhase2PrimitiveDigis = cms.EDProducer("DTTrigPhase2Prod",
                                                digiTag = cms.InputTag("CalibratedDigis"),
                                                trigger_with_sl = cms.untracked.int32(4),
-                                               tanPhiTh = cms.untracked.double(1.),
+                                               tanPhiTh = cms.untracked.double(1.4),
                                                chi2Th = cms.untracked.double(0.01), #in cm^2
                                                chi2corTh = cms.untracked.double(0.1), #in cm^2
                                                do_correlation = cms.bool(True),
@@ -27,6 +27,7 @@ dtTriggerPhase2PrimitiveDigis = cms.EDProducer("DTTrigPhase2Prod",
                                                ttrig_filename = cms.FileInPath('L1Trigger/DTTriggerPhase2/data/wire_rawId_ttrig.txt'),
                                                z_filename = cms.FileInPath('L1Trigger/DTTriggerPhase2/data/wire_rawId_z.txt'),
                                                shift_filename = cms.FileInPath('L1Trigger/DTTriggerPhase2/data/wire_rawId_x.txt'),
+                                               shift_eta_filename = cms.FileInPath('L1Trigger/DTTriggerPhase2/data/wire_rawId_y.txt'),
                                                grouping_code = cms.int32(0), # 0 = initial gr., 1 = Hough transform, 2 = PseudoBayes Approach
 
                                                minHits4Fit = cms.untracked.int32(4),

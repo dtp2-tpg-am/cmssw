@@ -592,8 +592,8 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
         chId.wheel(),    // uwh (m_wheel)     // FIXME: It is not clear who provides this?
         sectorTP,        // usc (m_sector)    // FIXME: It is not clear who provides this?
         chId.station(),  // ust (m_station)
-        (int)round((*metaPrimitiveIt).phi),    // uz (m_zGlobal)
-        (int)round((*metaPrimitiveIt).phiB),    // uk (m_kSlope)
+        (*metaPrimitiveIt).phi*10000,    // uz (m_zGlobal) //not rounded for the moment
+	(*metaPrimitiveIt).phiB*10000,    // uk (m_kSlope) // I will not round it for the moment
         (*metaPrimitiveIt).quality,                           // uqua (m_qualityCode)
         (*metaPrimitiveIt).index,                             // uind (m_segmentIndex)
         (int)round((*metaPrimitiveIt).t0) - shift_back * 25,  // ut0 (m_t0Segment)

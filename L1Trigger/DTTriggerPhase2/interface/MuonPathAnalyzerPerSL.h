@@ -82,6 +82,10 @@ public:
   edm::FileInPath shift_filename_;
   std::map<int, float> shiftinfo_;
 
+  //shift eta
+  edm::FileInPath shift_eta_filename_;
+  std::map<int, float> shiftetainfo_;
+
   int chosen_sl_;
 
 private:
