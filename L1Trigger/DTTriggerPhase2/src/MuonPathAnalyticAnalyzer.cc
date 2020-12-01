@@ -1,4 +1,4 @@
-#include "L1Trigger/DTTriggerPhase2/interface/MuonPathAnalyzerPerSL.h"
+#include "L1Trigger/DTTriggerPhase2/interface/MuonPathAnalyticAnalyzer.h"
 #include <cmath>
 #include <memory>
 
@@ -8,7 +8,7 @@ using namespace cmsdt;
 // ============================================================================
 // Constructors and destructor
 // ============================================================================
-MuonPathAnalyzerPerSL::MuonPathAnalyzerPerSL(const ParameterSet &pset, edm::ConsumesCollector &iC)
+MuonPathAnalyticAnalyzer::MuonPathAnalyticAnalyzer(const ParameterSet &pset, edm::ConsumesCollector &iC)
     : MuonPathAnalyzer(pset, iC),
       bxTolerance_(30),
       minQuality_(LOWQGHOST),
@@ -20,9 +20,10 @@ MuonPathAnalyzerPerSL::MuonPathAnalyzerPerSL(const ParameterSet &pset, edm::Cons
       tanPsi_precision_(pset.getUntrackedParameter<double>("tanPsi_precision")),
       x_precision_(pset.getUntrackedParameter<double>("x_precision")) {
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "MuonPathAnalyzer: constructor";
+    LogDebug("MuonPathAnalyticAnalyzer") << "MuonPathAnalyzer: constructor";
 
   setChiSquareThreshold(chi2Th_ * 100.);
+  fillLAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER();
 
   //shift
   int rawId;
@@ -31,7 +32,7 @@ MuonPathAnalyzerPerSL::MuonPathAnalyzerPerSL(const ParameterSet &pset, edm::Cons
   double shift;
   if (ifin3.fail()) {
     throw cms::Exception("Missing Input File")
-        << "MuonPathAnalyzerPerSL::MuonPathAnalyzerPerSL() -  Cannot find " << shift_filename_.fullPath();
+        << "MuonPathAnalyticAnalyzer::MuonPathAnalyticAnalyzer() -  Cannot find " << shift_filename_.fullPath();
   }
   while (ifin3.good()) {
     ifin3 >> rawId >> shift;
@@ -41,35 +42,35 @@ MuonPathAnalyzerPerSL::MuonPathAnalyzerPerSL(const ParameterSet &pset, edm::Cons
   chosen_sl_ = pset.getUntrackedParameter<int>("trigger_with_sl");
 
   if (chosen_sl_ != 1 && chosen_sl_ != 3 && chosen_sl_ != 4) {
-    LogDebug("MuonPathAnalyzerPerSL") << "chosen sl must be 1,3 or 4(both superlayers)";
+    LogDebug("MuonPathAnalyticAnalyzer") << "chosen sl must be 1,3 or 4(both superlayers)";
     assert(chosen_sl_ != 1 && chosen_sl_ != 3 && chosen_sl_ != 4);  //4 means run using the two superlayers
   }
 
   dtGeomH = iC.esConsumes<DTGeometry, MuonGeometryRecord, edm::Transition::BeginRun>();
 }
 
-MuonPathAnalyzerPerSL::~MuonPathAnalyzerPerSL() {
+MuonPathAnalyticAnalyzer::~MuonPathAnalyticAnalyzer() {
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "MuonPathAnalyzer: destructor";
+    LogDebug("MuonPathAnalyticAnalyzer") << "MuonPathAnalyzer: destructor";
 }
 
 // ============================================================================
 // Main methods (initialise, run, finish)
 // ============================================================================
-void MuonPathAnalyzerPerSL::initialise(const edm::EventSetup &iEventSetup) {
+void MuonPathAnalyticAnalyzer::initialise(const edm::EventSetup &iEventSetup) {
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "MuonPathAnalyzerPerSL::initialiase";
+    LogDebug("MuonPathAnalyticAnalyzer") << "MuonPathAnalyticAnalyzer::initialiase";
 
   const MuonGeometryRecord &geom = iEventSetup.get<MuonGeometryRecord>();
   dtGeo_ = &geom.get(dtGeomH);
 }
 
-void MuonPathAnalyzerPerSL::run(edm::Event &iEvent,
+void MuonPathAnalyticAnalyzer::run(edm::Event &iEvent,
                                 const edm::EventSetup &iEventSetup,
                                 MuonPathPtrs &muonpaths,
                                 std::vector<metaPrimitive> &metaPrimitives) {
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "MuonPathAnalyzerPerSL: run";
+    LogDebug("MuonPathAnalyticAnalyzer") << "MuonPathAnalyticAnalyzer: run";
 
   // fit per SL (need to allow for multiple outputs for a single mpath)
   for (auto &muonpath : muonpaths) {
@@ -77,12 +78,12 @@ void MuonPathAnalyzerPerSL::run(edm::Event &iEvent,
   }
 }
 
-void MuonPathAnalyzerPerSL::finish() {
+void MuonPathAnalyticAnalyzer::finish() {
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "MuonPathAnalyzer: finish";
+    LogDebug("MuonPathAnalyticAnalyzer") << "MuonPathAnalyzer: finish";
 };
 
-constexpr int MuonPathAnalyzerPerSL::LAYER_ARRANGEMENTS_[NUM_LAYERS][NUM_CELL_COMB] = {
+constexpr int MuonPathAnalyticAnalyzer::LAYER_ARRANGEMENTS_[NUM_LAYERS][NUM_CELL_COMB] = {
     {0, 1, 2},
     {1, 2, 3},  // Consecutive groups
     {0, 1, 3},
@@ -93,9 +94,9 @@ constexpr int MuonPathAnalyzerPerSL::LAYER_ARRANGEMENTS_[NUM_LAYERS][NUM_CELL_CO
 //--- Métodos privados
 //------------------------------------------------------------------
 
-void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimitive> &metaPrimitives) {
+void MuonPathAnalyticAnalyzer::analyze(MuonPathPtr &inMPath, std::vector<metaPrimitive> &metaPrimitives) {
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t starts";
+    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t starts";
 
   // LOCATE MPATH
   int selected_Id = 0;
@@ -110,13 +111,13 @@ void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimit
 
   DTLayerId thisLId(selected_Id);
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "Building up MuonPathSLId from rawId in the Primitive";
+    LogDebug("MuonPathAnalyticAnalyzer") << "Building up MuonPathSLId from rawId in the Primitive";
   DTSuperLayerId MuonPathSLId(thisLId.wheel(), thisLId.station(), thisLId.sector(), thisLId.superLayer());
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "The MuonPathSLId is" << MuonPathSLId;
+    LogDebug("MuonPathAnalyticAnalyzer") << "The MuonPathSLId is" << MuonPathSLId;
 
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL")
+    LogDebug("MuonPathAnalyticAnalyzer")
         << "DTp2:analyze \t\t\t\t In analyze function checking if inMPath->isAnalyzable() " << inMPath->isAnalyzable();
 
   if (chosen_sl_ < 4 && thisLId.superLayer() != chosen_sl_)
@@ -124,16 +125,7 @@ void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimit
 
   auto mPath = std::make_shared<MuonPath>(inMPath);
 
-  if (mPath->isAnalyzable()) {
-    if (debug_)
-      LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t yes it is analyzable " << mPath->isAnalyzable();
-    setCellLayout(mPath->cellLayout());
-    evaluatePathQuality(mPath);
-  } else {
-    if (debug_)
-      LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t no it is NOT analyzable " << mPath->isAnalyzable();
-    return;
-  }
+  superlayer_datapath(mPath);
 
   int wi[8], tdc[8], lat[8];
   DTPrimitivePtr Prim0(mPath->primitive(0));
@@ -157,19 +149,19 @@ void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimit
   DTWireId wireId(MuonPathSLId, 2, 1);
 
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t checking if it passes the min quality cut "
+    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t checking if it passes the min quality cut "
                                       << mPath->quality() << ">" << minQuality_;
   if (mPath->quality() >= minQuality_) {
     if (debug_)
-      LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t min quality achievedCalidad: " << mPath->quality();
+      LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t min quality achievedCalidad: " << mPath->quality();
     for (int i = 0; i <= 3; i++) {
       if (debug_)
-        LogDebug("MuonPathAnalyzerPerSL")
+        LogDebug("MuonPathAnalyticAnalyzer")
             << "DTp2:analyze \t\t\t\t  Capa: " << mPath->primitive(i)->layerId()
             << " Canal: " << mPath->primitive(i)->channelId() << " TDCTime: " << mPath->primitive(i)->tdcTimeStamp();
     }
     if (debug_)
-      LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t Starting lateralities loop, totalNumValLateralities: "
+      LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t Starting lateralities loop, totalNumValLateralities: "
                                         << totalNumValLateralities_;
 
     double best_chi2 = 99999.;
@@ -187,30 +179,30 @@ void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimit
 
     for (int i = 0; i < totalNumValLateralities_; i++) {  //here
       if (debug_)
-        LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t laterality #- " << i;
+        LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t laterality #- " << i;
       if (debug_)
-        LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t laterality #- " << i << " checking quality:";
+        LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t laterality #- " << i << " checking quality:";
       if (debug_)
-        LogDebug("MuonPathAnalyzerPerSL")
+        LogDebug("MuonPathAnalyticAnalyzer")
             << "DTp2:analyze \t\t\t\t\t laterality #- " << i << " checking mPath Quality=" << mPath->quality();
       if (debug_)
-        LogDebug("MuonPathAnalyzerPerSL")
+        LogDebug("MuonPathAnalyticAnalyzer")
             << "DTp2:analyze \t\t\t\t\t laterality #- " << i << " latQuality_[i].val=" << latQuality_[i].valid;
       if (debug_)
-        LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t laterality #- " << i << " before if:";
+        LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t laterality #- " << i << " before if:";
 
       if (latQuality_[i].valid and
           (((mPath->quality() == HIGHQ or mPath->quality() == HIGHQGHOST) and latQuality_[i].quality == HIGHQ) or
            ((mPath->quality() == LOWQ or mPath->quality() == LOWQGHOST) and latQuality_[i].quality == LOWQ))) {
         if (debug_)
-          LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t laterality #- " << i << " inside if";
+          LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t laterality #- " << i << " inside if";
         mPath->setBxTimeValue(latQuality_[i].bxValue);
         if (debug_)
-          LogDebug("MuonPathAnalyzerPerSL")
+          LogDebug("MuonPathAnalyticAnalyzer")
               << "DTp2:analyze \t\t\t\t\t laterality #- " << i << " settingLateralCombination";
         mPath->setLateralComb(lateralities_[i]);
         if (debug_)
-          LogDebug("MuonPathAnalyzerPerSL")
+          LogDebug("MuonPathAnalyticAnalyzer")
               << "DTp2:analyze \t\t\t\t\t laterality #- " << i << " done settingLateralCombination";
 
         // Clonamos el objeto analizado.
@@ -240,7 +232,7 @@ void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimit
         }
 
         if (debug_)
-          LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t  calculating parameters ";
+          LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t  calculating parameters ";
         calculatePathParameters(mpAux);
         /* 
 		 * After calculating the parameters, and if it is a 4-hit fit,
@@ -250,23 +242,23 @@ void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimit
         if ((mpAux->quality() == HIGHQ or mpAux->quality() == HIGHQGHOST) &&
             mpAux->chiSquare() > chiSquareThreshold_) {  //check this if!!!
           if (debug_)
-            LogDebug("MuonPathAnalyzerPerSL")
+            LogDebug("MuonPathAnalyticAnalyzer")
                 << "DTp2:analyze \t\t\t\t\t  HIGHQ or HIGHQGHOST but min chi2 or Q test not satisfied ";
         } else {
           if (debug_)
-            LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t  inside else, returning values: ";
+            LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t  inside else, returning values: ";
           if (debug_)
-            LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t  BX Time = " << mpAux->bxTimeValue();
+            LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t  BX Time = " << mpAux->bxTimeValue();
           if (debug_)
-            LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t  BX Id   = " << mpAux->bxNumId();
+            LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t  BX Id   = " << mpAux->bxNumId();
           if (debug_)
-            LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t  XCoor   = " << mpAux->horizPos();
+            LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t  XCoor   = " << mpAux->horizPos();
           if (debug_)
-            LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t  tan(Phi)= " << mpAux->tanPhi();
+            LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t  tan(Phi)= " << mpAux->tanPhi();
           if (debug_)
-            LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t  chi2= " << mpAux->chiSquare();
+            LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t  chi2= " << mpAux->chiSquare();
           if (debug_)
-            LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t  lateralities = "
+            LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t  lateralities = "
                                               << " " << mpAux->lateralComb()[0] << " " << mpAux->lateralComb()[1] << " "
                                               << mpAux->lateralComb()[2] << " " << mpAux->lateralComb()[3];
 
@@ -307,7 +299,7 @@ void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimit
           double chi2 = mpAux->chiSquare() * 0.01;  //in cmssw we need cm, 1 cm^2 = 100 mm^2
 
           if (debug_)
-            LogDebug("MuonPathAnalyzerPerSL")
+            LogDebug("MuonPathAnalyticAnalyzer")
                 << "DTp2:analyze \t\t\t\t\t\t\t\t  pushing back metaPrimitive at x=" << jm_x << " tanPhi:" << jm_tanPhi
                 << " t0:" << jm_t0;
 
@@ -329,7 +321,7 @@ void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimit
           } else if (std::abs(jm_tanPhi) <=
                      tanPhiTh_) {  //write the metaprimitive in case no HIGHQ or HIGHQGHOST and tanPhi range
             if (debug_)
-              LogDebug("MuonPathAnalyzerPerSL")
+              LogDebug("MuonPathAnalyticAnalyzer")
                   << "DTp2:analyze \t\t\t\t\t\t\t\t  pushing back metaprimitive no HIGHQ or HIGHQGHOST";
             metaPrimitives.emplace_back(metaPrimitive({MuonPathSLId.rawId(),
                                                        jm_t0,
@@ -365,13 +357,13 @@ void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimit
                                                        lat[7],
                                                        -1}));
             if (debug_)
-              LogDebug("MuonPathAnalyzerPerSL")
+              LogDebug("MuonPathAnalyticAnalyzer")
                   << "DTp2:analyze \t\t\t\t\t\t\t\t  done pushing back metaprimitive no HIGHQ or HIGHQGHOST";
           }
         }
       } else {
         if (debug_)
-          LogDebug("MuonPathAnalyzerPerSL")
+          LogDebug("MuonPathAnalyticAnalyzer")
               << "DTp2:analyze \t\t\t\t\t\t\t\t  latQuality_[i].valid and (((mPath->quality()==HIGHQ or "
                  "mPath->quality()==HIGHQGHOST) and latQuality_[i].quality==HIGHQ) or  ((mPath->quality() "
                  "== LOWQ or mPath->quality()==LOWQGHOST) and latQuality_[i].quality==LOWQ)) not passed";
@@ -379,7 +371,7 @@ void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimit
     }
     if (chi2_jm_tanPhi != 999 and std::abs(chi2_jm_tanPhi) < tanPhiTh_) {  //
       if (debug_)
-        LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t\t\t\t  pushing back best chi2 metaPrimitive";
+        LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t\t\t\t  pushing back best chi2 metaPrimitive";
       metaPrimitives.emplace_back(metaPrimitive({MuonPathSLId.rawId(),
                                                  chi2_jm_t0,
                                                  chi2_jm_x,
@@ -416,10 +408,10 @@ void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimit
     }
   }
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t finishes";
+    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t finishes";
 }
 
-void MuonPathAnalyzerPerSL::setCellLayout(const int layout[NUM_LAYERS]) {
+void MuonPathAnalyticAnalyzer::setCellLayout(const int layout[NUM_LAYERS]) {
   memcpy(cellLayout_, layout, 4 * sizeof(int));
 
   buildLateralities();
@@ -429,7 +421,7 @@ void MuonPathAnalyzerPerSL::setCellLayout(const int layout[NUM_LAYERS]) {
  * For a given 4-cell combination (one per layer), all the possible lateralities 
  * combinations that are compatible with a straight line are generated. 
  */
-void MuonPathAnalyzerPerSL::buildLateralities(void) {
+void MuonPathAnalyticAnalyzer::buildLateralities(void) {
   LATERAL_CASES(*validCase)[NUM_LAYERS], sideComb[NUM_LAYERS];
 
   totalNumValLateralities_ = 0;
@@ -462,7 +454,7 @@ void MuonPathAnalyzerPerSL::buildLateralities(void) {
 /**
  * This method checks whether a given combination conform a straight line or not
  */
-bool MuonPathAnalyzerPerSL::isStraightPath(LATERAL_CASES sideComb[NUM_LAYERS]) {
+bool MuonPathAnalyticAnalyzer::isStraightPath(LATERAL_CASES sideComb[NUM_LAYERS]) {
   return true;  //trying with all lateralities to be confirmed
 
   int i, ajustedLayout[NUM_LAYERS], pairDiff[3], desfase[3];
@@ -478,22 +470,22 @@ bool MuonPathAnalyzerPerSL::isStraightPath(LATERAL_CASES sideComb[NUM_LAYERS]) {
 
   return (!resultado);
 }
-void MuonPathAnalyzerPerSL::evaluatePathQuality(MuonPathPtr &mPath) {
+void MuonPathAnalyticAnalyzer::evaluatePathQuality(MuonPathPtr &mPath) {
   int totalHighQ = 0, totalLowQ = 0;
 
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL")
+    LogDebug("MuonPathAnalyticAnalyzer")
         << "DTp2:evaluatePathQuality \t\t\t\t\t En evaluatePathQuality Evaluando PathQ. Celda base: "
         << mPath->baseChannelId();
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "DTp2:evaluatePathQuality \t\t\t\t\t Total lateralidades: "
+    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:evaluatePathQuality \t\t\t\t\t Total lateralidades: "
                                       << totalNumValLateralities_;
 
   mPath->setQuality(NOPATH);
 
   for (int latIdx = 0; latIdx < totalNumValLateralities_; latIdx++) {
     if (debug_)
-      LogDebug("MuonPathAnalyzerPerSL") << "DTp2:evaluatePathQuality \t\t\t\t\t Analizando combinacion de lateralidad: "
+      LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:evaluatePathQuality \t\t\t\t\t Analizando combinacion de lateralidad: "
                                         << lateralities_[latIdx][0] << " " << lateralities_[latIdx][1] << " "
                                         << lateralities_[latIdx][2] << " " << lateralities_[latIdx][3];
 
@@ -502,12 +494,12 @@ void MuonPathAnalyzerPerSL::evaluatePathQuality(MuonPathPtr &mPath) {
     if (latQuality_[latIdx].quality == HIGHQ) {
       totalHighQ++;
       if (debug_)
-        LogDebug("MuonPathAnalyzerPerSL") << "DTp2:evaluatePathQuality \t\t\t\t\t\t Lateralidad HIGHQ";
+        LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:evaluatePathQuality \t\t\t\t\t\t Lateralidad HIGHQ";
     }
     if (latQuality_[latIdx].quality == LOWQ) {
       totalLowQ++;
       if (debug_)
-        LogDebug("MuonPathAnalyzerPerSL") << "DTp2:evaluatePathQuality \t\t\t\t\t\t Lateralidad LOWQ";
+        LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:evaluatePathQuality \t\t\t\t\t\t Lateralidad LOWQ";
     }
   }
   /*
@@ -524,7 +516,7 @@ void MuonPathAnalyzerPerSL::evaluatePathQuality(MuonPathPtr &mPath) {
   }
 }
 
-void MuonPathAnalyzerPerSL::evaluateLateralQuality(int latIdx, MuonPathPtr &mPath, LATQ_TYPE *latQuality) {
+void MuonPathAnalyticAnalyzer::evaluateLateralQuality(int latIdx, MuonPathPtr &mPath, LATQ_TYPE *latQuality) {
   int layerGroup[3];
   LATERAL_CASES sideComb[3];
   PARTIAL_LATQ_TYPE latQResult[NUM_LAYERS] = {{false, 0}, {false, 0}, {false, 0}, {false, 0}};
@@ -556,7 +548,7 @@ void MuonPathAnalyzerPerSL::evaluateLateralQuality(int latIdx, MuonPathPtr &mPat
     */
   if (!sameBXValue(latQResult)) {
     if (debug_)
-      LogDebug("MuonPathAnalyzerPerSL")
+      LogDebug("MuonPathAnalyticAnalyzer")
           << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad DESCARTADA. Tolerancia de BX excedida";
     return;
   }
@@ -568,11 +560,11 @@ void MuonPathAnalyzerPerSL::evaluateLateralQuality(int latIdx, MuonPathPtr &mPat
     latQuality->valid = true;
 
     if (debug_)
-      LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t\t Valid BXs";
+      LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t\t Valid BXs";
     long int sumBX = 0, numValid = 0;
     for (int i = 0; i <= 3; i++) {
       if (debug_)
-        LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t\t "
+        LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t\t "
                                           << "[" << latQResult[i].bxValue << "," << latQResult[i].latQValid << "]";
       if (latQResult[i].latQValid) {
         sumBX += latQResult[i].bxValue;
@@ -593,7 +585,7 @@ void MuonPathAnalyzerPerSL::evaluateLateralQuality(int latIdx, MuonPathPtr &mPat
     latQuality->quality = HIGHQ;
 
     if (debug_)
-      LogDebug("MuonPathAnalyzerPerSL") << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad ACEPTADA. HIGHQ.";
+      LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad ACEPTADA. HIGHQ.";
   } else {
     if (latQResult[0].latQValid or latQResult[1].latQValid or latQResult[2].latQValid or latQResult[3].latQValid) {
       latQuality->valid = true;
@@ -606,10 +598,10 @@ void MuonPathAnalyzerPerSL::evaluateLateralQuality(int latIdx, MuonPathPtr &mPat
         }
 
       if (debug_)
-        LogDebug("MuonPathAnalyzerPerSL") << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad ACEPTADA. LOWQ.";
+        LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad ACEPTADA. LOWQ.";
     } else {
       if (debug_)
-        LogDebug("MuonPathAnalyzerPerSL") << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad DESCARTADA. NOPATH.";
+        LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad DESCARTADA. NOPATH.";
     }
   }
 }
@@ -618,7 +610,7 @@ void MuonPathAnalyzerPerSL::evaluateLateralQuality(int latIdx, MuonPathPtr &mPat
  * Validate, for a layer combination (3), cells and lateralities, if the temporal values
  * fullfill the mean-timer criteria. 
  */
-void MuonPathAnalyzerPerSL::validate(LATERAL_CASES sideComb[3],
+void MuonPathAnalyticAnalyzer::validate(LATERAL_CASES sideComb[3],
                                      int layerIndex[3],
                                      MuonPathPtr &mPath,
                                      PARTIAL_LATQ_TYPE *latq) {
@@ -627,11 +619,11 @@ void MuonPathAnalyzerPerSL::validate(LATERAL_CASES sideComb[3],
   latq->latQValid = false;
 
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "DTp2:validate \t\t\t\t\t\t\t In validate, checking muon path for layers: "
+    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t In validate, checking muon path for layers: "
                                       << layerIndex[0] << "/" << layerIndex[1] << "/" << layerIndex[2];
 
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "DTp2:validate \t\t\t\t\t\t\t Partial lateralities: " << sideComb[0] << "/"
+    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t Partial lateralities: " << sideComb[0] << "/"
                                       << sideComb[1] << "/" << sideComb[2];
 
   int validCells = 0;
@@ -641,18 +633,18 @@ void MuonPathAnalyzerPerSL::validate(LATERAL_CASES sideComb[3],
 
   if (validCells != 3) {
     if (debug_)
-      LogDebug("MuonPathAnalyzerPerSL") << "DTp2:validate \t\t\t\t\t\t\t There is no valid cells.";
+      LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t There is no valid cells.";
     return;
   }
 
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "DTp2:validate \t\t\t\t\t\t\t TDC values: "
+    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t TDC values: "
                                       << mPath->primitive(layerIndex[0])->tdcTimeStamp() << "/"
                                       << mPath->primitive(layerIndex[1])->tdcTimeStamp() << "/"
                                       << mPath->primitive(layerIndex[2])->tdcTimeStamp() << ".";
 
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "DTp2:validate \t\t\t\t\t\t\t Valid TIMES: "
+    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t Valid TIMES: "
                                       << mPath->primitive(layerIndex[0])->isValidTime() << "/"
                                       << mPath->primitive(layerIndex[1])->isValidTime() << "/"
                                       << mPath->primitive(layerIndex[2])->isValidTime() << ".";
@@ -698,7 +690,7 @@ void MuonPathAnalyzerPerSL::validate(LATERAL_CASES sideComb[3],
 
   if (denominator == 0) {
     if (debug_)
-      LogDebug("MuonPathAnalyzerPerSL") << "DTp2:validate \t\t\t\t\t\t\t Imposible to calculate BX.";
+      LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t Imposible to calculate BX.";
     return;
   }
 
@@ -721,10 +713,10 @@ void MuonPathAnalyzerPerSL::validate(LATERAL_CASES sideComb[3],
   else if (denominator == DENOM_TYPE1)
     bxValue = (numerator * (DIVISION_HELPER1)) / std::pow(2, NBITS);
   else
-    LogDebug("MuonPathAnalyzerPerSL") << "Different!";
+    LogDebug("MuonPathAnalyticAnalyzer") << "Different!";
   if (bxValue < 0) {
     if (debug_)
-      LogDebug("MuonPathAnalyzerPerSL") << "DTp2:validate \t\t\t\t\t\t\t No-valid combination. Negative BX.";
+      LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t No-valid combination. Negative BX.";
     return;
   }
 
@@ -734,20 +726,20 @@ void MuonPathAnalyzerPerSL::validate(LATERAL_CASES sideComb[3],
 
       if (diffTime <= 0 or diffTime > round(MAXDRIFT)) {
         if (debug_)
-          LogDebug("MuonPathAnalyzerPerSL")
+          LogDebug("MuonPathAnalyticAnalyzer")
               << "DTp2:validate \t\t\t\t\t\t\t Invalid BX value. at least one crazt TDC time";
         return;
       }
     }
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "DTp2:validate \t\t\t\t\t\t\t  BX: " << bxValue;
+    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t  BX: " << bxValue;
 
   /* If you reach here, the BX and partial laterality are considered are valid
      */
   latq->bxValue = bxValue;
   latq->latQValid = true;
 }
-int MuonPathAnalyzerPerSL::eqMainBXTerm(LATERAL_CASES sideComb[2], int layerIdx[2], MuonPathPtr &mPath) {
+int MuonPathAnalyticAnalyzer::eqMainBXTerm(LATERAL_CASES sideComb[2], int layerIdx[2], MuonPathPtr &mPath) {
   int eqTerm = 0, coefs[2];
 
   lateralCoeficients(sideComb, coefs);
@@ -756,11 +748,11 @@ int MuonPathAnalyzerPerSL::eqMainBXTerm(LATERAL_CASES sideComb[2], int layerIdx[
            coefs[1] * mPath->primitive(layerIdx[1])->tdcTimeStampNoOffset();
 
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "DTp2:eqMainBXTerm \t\t\t\t\t In eqMainBXTerm EQTerm(BX): " << eqTerm;
+    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:eqMainBXTerm \t\t\t\t\t In eqMainBXTerm EQTerm(BX): " << eqTerm;
 
   return (eqTerm);
 }
-int MuonPathAnalyzerPerSL::eqMainTerm(LATERAL_CASES sideComb[2], int layerIdx[2], MuonPathPtr &mPath, int bxValue) {
+int MuonPathAnalyticAnalyzer::eqMainTerm(LATERAL_CASES sideComb[2], int layerIdx[2], MuonPathPtr &mPath, int bxValue) {
   int eqTerm = 0, coefs[2];
 
   lateralCoeficients(sideComb, coefs);
@@ -775,12 +767,12 @@ int MuonPathAnalyzerPerSL::eqMainTerm(LATERAL_CASES sideComb[2], int layerIdx[2]
                               (mPath->primitive(layerIdx[1])->tdcTimeStampNoOffset() - bxValue));
 
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "DTp2:\t\t\t\t\t EQTerm(Main): " << eqTerm;
+    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:\t\t\t\t\t EQTerm(Main): " << eqTerm;
 
   return (eqTerm);
 }
 
-void MuonPathAnalyzerPerSL::lateralCoeficients(LATERAL_CASES sideComb[2], int *coefs) {
+void MuonPathAnalyticAnalyzer::lateralCoeficients(LATERAL_CASES sideComb[2], int *coefs) {
   if ((sideComb[0] == LEFT) && (sideComb[1] == LEFT)) {
     *(coefs) = +1;
     *(coefs + 1) = -1;
@@ -800,24 +792,24 @@ void MuonPathAnalyzerPerSL::lateralCoeficients(LATERAL_CASES sideComb[2], int *c
  * Determines if all valid partial lateral combinations share the same value
  * of 'bxValue'.
  */
-bool MuonPathAnalyzerPerSL::sameBXValue(PARTIAL_LATQ_TYPE *latq) {
+bool MuonPathAnalyticAnalyzer::sameBXValue(PARTIAL_LATQ_TYPE *latq) {
   bool result = true;
 
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "Dtp2:sameBXValue bxTolerance_: " << bxTolerance_;
+    LogDebug("MuonPathAnalyticAnalyzer") << "Dtp2:sameBXValue bxTolerance_: " << bxTolerance_;
 
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "Dtp2:sameBXValue \t\t\t\t\t\t d01:" << abs(latq[0].bxValue - latq[1].bxValue);
+    LogDebug("MuonPathAnalyticAnalyzer") << "Dtp2:sameBXValue \t\t\t\t\t\t d01:" << abs(latq[0].bxValue - latq[1].bxValue);
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "Dtp2:sameBXValue \t\t\t\t\t\t d02:" << abs(latq[0].bxValue - latq[2].bxValue);
+    LogDebug("MuonPathAnalyticAnalyzer") << "Dtp2:sameBXValue \t\t\t\t\t\t d02:" << abs(latq[0].bxValue - latq[2].bxValue);
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "Dtp2:sameBXValue \t\t\t\t\t\t d03:" << abs(latq[0].bxValue - latq[3].bxValue);
+    LogDebug("MuonPathAnalyticAnalyzer") << "Dtp2:sameBXValue \t\t\t\t\t\t d03:" << abs(latq[0].bxValue - latq[3].bxValue);
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "Dtp2:sameBXValue \t\t\t\t\t\t d12:" << abs(latq[1].bxValue - latq[2].bxValue);
+    LogDebug("MuonPathAnalyticAnalyzer") << "Dtp2:sameBXValue \t\t\t\t\t\t d12:" << abs(latq[1].bxValue - latq[2].bxValue);
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "Dtp2:sameBXValue \t\t\t\t\t\t d13:" << abs(latq[1].bxValue - latq[3].bxValue);
+    LogDebug("MuonPathAnalyticAnalyzer") << "Dtp2:sameBXValue \t\t\t\t\t\t d13:" << abs(latq[1].bxValue - latq[3].bxValue);
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "Dtp2:sameBXValue \t\t\t\t\t\t d23:" << abs(latq[2].bxValue - latq[3].bxValue);
+    LogDebug("MuonPathAnalyticAnalyzer") << "Dtp2:sameBXValue \t\t\t\t\t\t d23:" << abs(latq[2].bxValue - latq[3].bxValue);
 
   bool d01, d02, d03, d12, d13, d23;
   d01 = (abs(latq[0].bxValue - latq[1].bxValue) <= bxTolerance_) ? true : false;
@@ -849,33 +841,33 @@ bool MuonPathAnalyzerPerSL::sameBXValue(PARTIAL_LATQ_TYPE *latq) {
 }
 
 /** Calculate the parameters of the detected trayectories */
-void MuonPathAnalyzerPerSL::calculatePathParameters(MuonPathPtr &mPath) {
+void MuonPathAnalyticAnalyzer::calculatePathParameters(MuonPathPtr &mPath) {
   // The order is important.
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL")
+    LogDebug("MuonPathAnalyticAnalyzer")
         << "DTp2:calculatePathParameters \t\t\t\t\t\t  calculating calcCellDriftAndXcoor(mPath) ";
   calcCellDriftAndXcoor(mPath);
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "DTp2:calculatePathParameters \t\t\t\t\t\t  checking mPath->quality() "
+    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:calculatePathParameters \t\t\t\t\t\t  checking mPath->quality() "
                                       << mPath->quality();
   if (mPath->quality() == HIGHQ or mPath->quality() == HIGHQGHOST) {
     if (debug_)
-      LogDebug("MuonPathAnalyzerPerSL")
+      LogDebug("MuonPathAnalyticAnalyzer")
           << "DTp2:calculatePathParameters \t\t\t\t\t\t\t  Quality test passed, now calcTanPhiXPosChamber4Hits(mPath) ";
     calcTanPhiXPosChamber4Hits(mPath);
   } else {
     if (debug_)
-      LogDebug("MuonPathAnalyzerPerSL")
+      LogDebug("MuonPathAnalyticAnalyzer")
           << "DTp2:calculatePathParameters \t\t\t\t\t\t\t  Quality test NOT passed calcTanPhiXPosChamber3Hits(mPath) ";
     calcTanPhiXPosChamber3Hits(mPath);
   }
 
   if (debug_)
-    LogDebug("MuonPathAnalyzerPerSL") << "DTp2:calculatePathParameters \t\t\t\t\t\t calcChiSquare(mPath) ";
+    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:calculatePathParameters \t\t\t\t\t\t calcChiSquare(mPath) ";
   calcChiSquare(mPath);
 }
 
-void MuonPathAnalyzerPerSL::calcTanPhiXPosChamber(MuonPathPtr &mPath) {
+void MuonPathAnalyticAnalyzer::calcTanPhiXPosChamber(MuonPathPtr &mPath) {
   int layerIdx[2];
   /*
       To calculate path's angle are only necessary two valid primitives.
@@ -948,7 +940,7 @@ void MuonPathAnalyzerPerSL::calcTanPhiXPosChamber(MuonPathPtr &mPath) {
 /**
  * Coordinate and angle calculations for a 4 HITS cases
  */
-void MuonPathAnalyzerPerSL::calcTanPhiXPosChamber4Hits(MuonPathPtr &mPath) {
+void MuonPathAnalyticAnalyzer::calcTanPhiXPosChamber4Hits(MuonPathPtr &mPath) {
   int x_prec_inv = (int)(1. / (10. * x_precision_));
   int numberOfBits = (int)(round(std::log(x_prec_inv) / std::log(2.)));
   int numerator = 3 * (int)round(mPath->xCoorCell(3) / (10 * x_precision_)) +
@@ -966,7 +958,7 @@ void MuonPathAnalyzerPerSL::calcTanPhiXPosChamber4Hits(MuonPathPtr &mPath) {
 /**
  *  3 HITS cases
  */
-void MuonPathAnalyzerPerSL::calcTanPhiXPosChamber3Hits(MuonPathPtr &mPath) {
+void MuonPathAnalyticAnalyzer::calcTanPhiXPosChamber3Hits(MuonPathPtr &mPath) {
   int layerIdx[2];
   int x_prec_inv = (int)(1. / (10. * x_precision_));
   int numberOfBits = (int)(round(std::log(x_prec_inv) / std::log(2.)));
@@ -1012,7 +1004,7 @@ void MuonPathAnalyzerPerSL::calcTanPhiXPosChamber3Hits(MuonPathPtr &mPath) {
 /**
  * Calculate the drift distances of each wire and the horizontal position 
  */
-void MuonPathAnalyzerPerSL::calcCellDriftAndXcoor(MuonPathPtr &mPath) {
+void MuonPathAnalyticAnalyzer::calcCellDriftAndXcoor(MuonPathPtr &mPath) {
   long int drift_speed_new = 889;
   long int drift_dist_um_x4;
   long int wireHorizPos_x4;
@@ -1038,7 +1030,7 @@ void MuonPathAnalyzerPerSL::calcCellDriftAndXcoor(MuonPathPtr &mPath) {
 /**
  * Calculate the quality estimator of each trayectory.
  */
-void MuonPathAnalyzerPerSL::calcChiSquare(MuonPathPtr &mPath) {
+void MuonPathAnalyticAnalyzer::calcChiSquare(MuonPathPtr &mPath) {
   int x_prec_inv = (int)(1. / (10. * x_precision_));
   int numberOfBits = (int)(round(std::log(x_prec_inv) / std::log(2.)));
   long int Z_FACTOR[NUM_LAYERS] = {-6, -2, 2, 6};
@@ -1060,7 +1052,7 @@ void MuonPathAnalyzerPerSL::calcChiSquare(MuonPathPtr &mPath) {
   mPath->setChiSquare(((double)chi2_mm2_x1024 / 1024.));
 }
 
-int MuonPathAnalyzerPerSL::omittedHit(int idx) {
+int MuonPathAnalyticAnalyzer::omittedHit(int idx) {
   switch (idx) {
     case 0:
       return 3;
@@ -1073,4 +1065,506 @@ int MuonPathAnalyzerPerSL::omittedHit(int idx) {
   }
 
   return -1;
+}
+
+void MuonPathAnalyticAnalyzer::superlayer_datapath(MuonPathPtr &mPath) {
+  int validCells = 0;
+  if (debug_)
+    LogDebug("MuonPathAnalyticAnalyzer") <<  ">>>>DEBUG: SUPERLAYER_DATAPATH " << endl;
+
+  for (int j = 0; j < 4; j++)
+    if (mPath->primitive(j)->isValidTime())
+      validCells++;
+
+  if (validCells < 3) return;
+  int wires[4], t0s[4], valids[4], cell_horiz_layout[4];
+  for (int j = 0; j < 4; j++) {
+    if (mPath->primitive(j)->isValidTime()){
+      wires[j] = mPath->primitive(j)->channelId();
+      t0s[j] = mPath->primitive(j)->tdcTimeStamp();
+      valids[j] = 1; 
+    } else {
+      wires[j] = -1;
+      t0s[j] = -1;
+      valids[j] = 0; 
+    }
+  }
+
+  if (wires[0] < 0) wires[0] = wires[1]; 
+  if (wires[1] < 0) wires[1] = wires[0]; 
+  if (wires[2] < 0) wires[2] = wires[1]-1; 
+  if (wires[3] < 0) wires[3] = wires[2]; 
+
+  if (debug_)
+    LogDebug("MuonPathAnalyticAnalyzer") << ">>>>DEBUG: SUPERLAYER_DATAPATH" << endl
+      << "wires[0]:" << wires[0] << " wires[1]:" << wires[1] << " wires[2]:" << wires[2] <<" wires[3]:" << wires[3]<< endl 
+      << "t0[0]:" << t0s[0] << " t0[1]:" << t0s[1] << " t0[2]:" << t0s[2] <<" t0[3]:" << t0s[3]<< endl 
+      << "valid[0]:" << valids[0] << " valid[1]:" << valids[1] << " valid[2]:" << valids[2] <<" valid[3]:" << valids[3]<< endl 
+      << ">>>>>>>>>>>" << endl; 
+
+
+  for (int j = 0; j < 4; j++) {
+    cell_horiz_layout[j] = 2*(wires[j] - wires[0]);
+    if (j == 1 || j == 3) cell_horiz_layout[j]--; 
+  } 
+
+  if (debug_)
+    LogDebug("MuonPathAnalyticAnalyzer") << "Starting segment composer with cell_horiz_layout " << cell_horiz_layout[0] << cell_horiz_layout[1] <<cell_horiz_layout[2] <<cell_horiz_layout[3] << endl;
+  segment_composer(valids, wires, t0s, cell_horiz_layout, mPath); 
+
+}
+
+void MuonPathAnalyticAnalyzer::segment_composer(int valids[cmsdt::NUM_LAYERS], int wires[cmsdt::NUM_LAYERS],
+    int t0s[cmsdt::NUM_LAYERS], int cell_horiz_layout[cmsdt::NUM_LAYERS], MuonPathPtr &mPath) {
+
+  if (debug_)
+    LogDebug("MuonPathAnalyticAnalyzer") << ">>>>DEBUG: Inside segment composer" << endl
+      << "wires[0]:" << wires[0] << " wires[1]:" << wires[1] << " wires[2]:" << wires[2] <<" wires[3]:" << wires[3]<< endl 
+      << "t0[0]:" << t0s[0] << " t0[1]:" << t0s[1] << " t0[2]:" << t0s[2] <<" t0[3]:" << t0s[3]<< endl 
+      << "valid[0]:" << valids[0] << " valid[1]:" << valids[1] << " valid[2]:" << valids[2] <<" valid[3]:" << valids[3]<< endl 
+      << ">>>>>>>>>>>" << endl; 
+  
+  bool notAllValid = false;
+  int omitted_layer = -1;  
+  for (int i = 0; i < 4; i++){
+    if (valids[i] == 0) { 
+      notAllValid = true;
+      omitted_layer = i; 
+    }
+  }
+
+  if (debug_)
+    LogDebug("MuonPathAnalyticAnalyzer") << "notAllValid=" << notAllValid << endl; 
+
+  std::vector <latcomb_consts> my_latcomb_consts = {};
+  for (auto & elem : LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER) 
+    if (elem.first.valid[0] == valids[0] 
+      && elem.first.valid[1] == valids[1]
+      && elem.first.valid[2] == valids[2]
+      && elem.first.valid[3] == valids[3]
+      && elem.first.cell_horiz_layout[0] == cell_horiz_layout[0]
+      && elem.first.cell_horiz_layout[1] == cell_horiz_layout[1]
+      && elem.first.cell_horiz_layout[2] == cell_horiz_layout[2]
+      && elem.first.cell_horiz_layout[3] == cell_horiz_layout[3]){
+
+      for (auto & ind_latcomb_consts : elem.second)
+        my_latcomb_consts.push_back(ind_latcomb_consts);
+    } 
+  for (auto & ind_latcomb_consts : my_latcomb_consts ){
+    if (debug_)
+      LogDebug("MuonPathAnalyticAnalyzer") << "Computing t0 with latcomb_consts"  << ind_latcomb_consts.latcomb <<","<<  ind_latcomb_consts.numer_const << ",{" << ind_latcomb_consts.numer_coeff[0] << "," <<ind_latcomb_consts.numer_coeff[1] << "," <<ind_latcomb_consts.numer_coeff[2] << "," <<ind_latcomb_consts.numer_coeff[3] << "}," << ind_latcomb_consts.denom << endl; 
+    int prim_t0 = validate_4hits_one_latcomb_reduced(valids, t0s, cell_horiz_layout, ind_latcomb_consts);
+   
+    int lat = changeLatToEmu (ind_latcomb_consts.latcomb); 
+    if (prim_t0 != 0) {
+      if (debug_)
+        LogDebug("MuonPathAnalyticAnalyzer") << "Will fill Alvaro's laterality " <<  ind_latcomb_consts.latcomb << "= Emu lat " << lat << endl; 
+      latQuality_[lat].valid = true; 
+      latQuality_[lat].bxValue = prim_t0; 
+      
+      if (notAllValid) latQuality_[lat].quality = LOWQ; 
+      else latQuality_[lat].quality = HIGHQ;
+      
+      if (debug_)
+        LogDebug("MuonPathAnalyticAnalyzer") << "Obtained a combination with quality " << latQuality_[lat].quality << endl; 
+      if (debug_)
+        LogDebug("MuonPathAnalyticAnalyzer") << "My mpath quality before update is " << mPath->quality() << endl;  
+      if (mPath->quality() < latQuality_[lat].quality) mPath->setQuality(latQuality_[lat].quality);
+      if (debug_)
+        LogDebug("MuonPathAnalyticAnalyzer") << "My mpath quality after update is " << mPath->quality() << endl;  
+
+      latQuality_[lat].invalidateHitIdx = omitted_layer; 
+    }
+  }
+ 
+}
+
+int MuonPathAnalyticAnalyzer::validate_4hits_one_latcomb_reduced(int valids[cmsdt::NUM_LAYERS],
+    int t0s[cmsdt::NUM_LAYERS], int cell_horiz_layout[cmsdt::NUM_LAYERS], latcomb_consts my_latcomb_consts) {
+  int t_perfect, t_tucked; 
+  
+  bool notAllValid = false; 
+  for (int i = 0; i < cmsdt::NUM_LAYERS; i++){
+    if (valids[i] == 0) notAllValid = true;
+  }
+
+  if (my_latcomb_consts.denom == 0) {
+    t_perfect = 0; 
+    t_tucked = 0;
+  } else {
+    t_perfect = my_latcomb_consts.numer_const;
+    for (int i = 0; i < cmsdt::NUM_LAYERS; i++){ 
+      t_perfect = t_perfect + my_latcomb_consts.numer_coeff[i] * t0s[i];
+    }
+    t_perfect = t_perfect / my_latcomb_consts.denom; 
+    t_tucked = tuck_t0(t_perfect, t0s, valids);
+    if (debug_)
+      LogDebug("MuonPathAnalyticAnalyzer") << "Perfect time: " << t_perfect << ", Tucked time: " << t_tucked << ", Equal = "<< (t_tucked == t_perfect) << endl; 
+    if (t_tucked != t_perfect && notAllValid) t_tucked = 0;
+    if (debug_)
+    LogDebug("MuonPathAnalyticAnalyzer") << "Tucked time after comparison: " << t_tucked << endl; 
+  }
+  return int(t_tucked);
+}
+
+int MuonPathAnalyticAnalyzer::tuck_t0(int t, int t0s[4], int valids[4]){
+  double MAX_DRIFT_TIME_F = 386.75; 
+  int min_t = -1, max_t = 99999;  
+  for (int i = 0; i < 4; i++){
+    if (valids[i] == 0) continue; 
+    if (t0s[i] < max_t) max_t = t0s[i];
+    int tmp_min_t =  t0s[i] - round(MAX_DRIFT_TIME_F);
+    if (tmp_min_t>min_t) min_t = tmp_min_t; 
+  }
+  if (debug_)
+    LogDebug("MuonPathAnalyticAnalyzer") << "min_t:" << min_t << " t:" << t << " max_t:" << max_t << endl;
+  if (min_t > max_t || t < min_t-bxTolerance_ || t>max_t+bxTolerance_) return 0;
+  else {
+    std::vector <int> times = {min_t, t, max_t}; 
+    std::sort (times.begin(), times.end()); 
+    return times.at(1);
+  } 
+
+}
+
+int MuonPathAnalyticAnalyzer::changeLatToEmu (int lat) {
+  std::vector <int> binaryNum = {};
+  while (lat > 1) {
+    binaryNum.push_back(lat % 2);
+    lat = lat / 2;
+  }
+  binaryNum.push_back(lat);
+  while (binaryNum.size() < 4) binaryNum.push_back(0);
+ 
+
+  int emuLat = 0, factor = 1; 
+  for (int i = binaryNum.size()-1; i>=0; i--){
+     int digit = binaryNum.at(i);
+     emuLat = emuLat + digit*factor; 
+     factor = 2*factor; 
+  }
+  return emuLat; 
+}
+
+void MuonPathAnalyticAnalyzer::fillLAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER(){
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,0,1},{1,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({2,-3094.0,{4,7,2,1},14}),
+  latcomb_consts({6,-773.5,{1,1,1,1},4}),
+  latcomb_consts({14,-2320.5,{3,4,1,-2},6}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,-2,-1},{1,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({4,-3094.0,{1,2,7,4},14}),
+  latcomb_consts({6,-773.5,{1,1,1,1},4}),
+  latcomb_consts({7,-2320.5,{-2,1,4,3},6}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,0,1},{1,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({4,-2320.5,{1,2,7,4},14}),
+  latcomb_consts({12,-1547.0,{-1,3,3,-1},4}),
+  latcomb_consts({5,-1547.0,{1,3,3,1},8}),
+  latcomb_consts({13,-2320.5,{4,7,2,1},14}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,0,-1},{1,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-2320.5,{3,4,1,-2},6}),
+  latcomb_consts({9,-773.5,{1,1,1,1},4}),
+  latcomb_consts({13,-3094.0,{4,7,2,1},14}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,0,-1},{1,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({2,-2320.5,{4,7,2,1},14}),
+  latcomb_consts({10,-1547.0,{1,3,3,1},8}),
+  latcomb_consts({3,-1547.0,{-1,3,3,-1},4}),
+  latcomb_consts({11,-2320.5,{1,2,7,4},14}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,2,1},{1,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({8,-2320.5,{-2,1,4,3},6}),
+  latcomb_consts({9,-773.5,{1,1,1,1},4}),
+  latcomb_consts({11,-3094.0,{1,2,7,4},14}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+  latcomb_consts({0,0,{0,0,0,0},0}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,-2,-3},{1,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({8,0.0,{-2,1,4,3},6}),
+  latcomb_consts({12,0.0,{-1,3,3,-1},4}),
+  latcomb_consts({14,0.0,{3,4,1,-2},6}),
+  latcomb_consts({1,0.0,{3,4,1,-2},6}),
+  latcomb_consts({3,0.0,{-1,3,3,-1},4}),
+  latcomb_consts({7,0.0,{-2,1,4,3},6}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,2,3},{1,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({8,0.0,{-2,1,4,3},6}),
+  latcomb_consts({12,0.0,{-1,3,3,-1},4}),
+  latcomb_consts({14,0.0,{3,4,1,-2},6}),
+  latcomb_consts({1,0.0,{3,4,1,-2},6}),
+  latcomb_consts({3,0.0,{-1,3,3,-1},4}),
+  latcomb_consts({7,0.0,{-2,1,4,3},6}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,0,1},{0,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({2,-0.0,{0,1,2,-1},2}),
+  latcomb_consts({4,0.0,{0,1,2,1},4}),
+  latcomb_consts({6,0.0,{0,-1,2,1},2}),
+  latcomb_consts({8,-0.0,{0,-1,2,1},2}),
+  latcomb_consts({10,-0.0,{0,1,2,1},4}),
+  latcomb_consts({12,0.0,{0,1,2,-1},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,-2,-1},{0,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({2,773.5,{0,1,2,-1},2}),
+  latcomb_consts({4,-773.5,{0,1,2,1},4}),
+  latcomb_consts({6,-773.5,{0,-1,2,1},2}),
+  latcomb_consts({8,773.5,{0,-1,2,1},2}),
+  latcomb_consts({10,773.5,{0,1,2,1},4}),
+  latcomb_consts({12,-773.5,{0,1,2,-1},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,0,1},{0,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({2,773.5,{0,1,2,-1},2}),
+  latcomb_consts({4,-773.5,{0,1,2,1},4}),
+  latcomb_consts({6,-773.5,{0,-1,2,1},2}),
+  latcomb_consts({8,773.5,{0,-1,2,1},2}),
+  latcomb_consts({10,773.5,{0,1,2,1},4}),
+  latcomb_consts({12,-773.5,{0,1,2,-1},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,0,-1},{0,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({2,-0.0,{0,1,2,-1},2}),
+  latcomb_consts({4,0.0,{0,1,2,1},4}),
+  latcomb_consts({6,0.0,{0,-1,2,1},2}),
+  latcomb_consts({8,-0.0,{0,-1,2,1},2}),
+  latcomb_consts({10,-0.0,{0,1,2,1},4}),
+  latcomb_consts({12,0.0,{0,1,2,-1},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,0,-1},{0,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({2,-773.5,{0,1,2,-1},2}),
+  latcomb_consts({4,773.5,{0,1,2,1},4}),
+  latcomb_consts({6,773.5,{0,-1,2,1},2}),
+  latcomb_consts({8,-773.5,{0,-1,2,1},2}),
+  latcomb_consts({10,-773.5,{0,1,2,1},4}),
+  latcomb_consts({12,773.5,{0,1,2,-1},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,2,1},{0,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({2,-773.5,{0,1,2,-1},2}),
+  latcomb_consts({4,773.5,{0,1,2,1},4}),
+  latcomb_consts({6,773.5,{0,-1,2,1},2}),
+  latcomb_consts({8,-773.5,{0,-1,2,1},2}),
+  latcomb_consts({10,-773.5,{0,1,2,1},4}),
+  latcomb_consts({12,773.5,{0,1,2,-1},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,-2,-3},{0,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({2,-0.0,{0,1,2,-1},2}),
+  latcomb_consts({4,0.0,{0,1,2,1},4}),
+  latcomb_consts({6,0.0,{0,-1,2,1},2}),
+  latcomb_consts({8,-0.0,{0,-1,2,1},2}),
+  latcomb_consts({10,-0.0,{0,1,2,1},4}),
+  latcomb_consts({12,0.0,{0,1,2,-1},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,2,3},{0,1,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({2,-0.0,{0,1,2,-1},2}),
+  latcomb_consts({4,0.0,{0,1,2,1},4}),
+  latcomb_consts({6,0.0,{0,-1,2,1},2}),
+  latcomb_consts({8,-0.0,{0,-1,2,1},2}),
+  latcomb_consts({10,-0.0,{0,1,2,1},4}),
+  latcomb_consts({12,0.0,{0,1,2,-1},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,0,1},{1,0,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,773.5,{1,0,3,-2},2}),
+  latcomb_consts({4,-773.5,{1,0,3,2},6}),
+  latcomb_consts({5,-773.5,{-1,0,3,2},4}),
+  latcomb_consts({8,773.5,{-1,0,3,2},4}),
+  latcomb_consts({9,773.5,{1,0,3,2},6}),
+  latcomb_consts({12,-773.5,{1,0,3,-2},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,-2,-1},{1,0,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,1547.0,{1,0,3,-2},2}),
+  latcomb_consts({4,-1547.0,{1,0,3,2},6}),
+  latcomb_consts({5,-1547.0,{-1,0,3,2},4}),
+  latcomb_consts({8,1547.0,{-1,0,3,2},4}),
+  latcomb_consts({9,1547.0,{1,0,3,2},6}),
+  latcomb_consts({12,-1547.0,{1,0,3,-2},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,0,1},{1,0,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,773.5,{1,0,3,-2},2}),
+  latcomb_consts({4,-773.5,{1,0,3,2},6}),
+  latcomb_consts({5,-773.5,{-1,0,3,2},4}),
+  latcomb_consts({8,773.5,{-1,0,3,2},4}),
+  latcomb_consts({9,773.5,{1,0,3,2},6}),
+  latcomb_consts({12,-773.5,{1,0,3,-2},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,0,-1},{1,0,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-773.5,{1,0,3,-2},2}),
+  latcomb_consts({4,773.5,{1,0,3,2},6}),
+  latcomb_consts({5,773.5,{-1,0,3,2},4}),
+  latcomb_consts({8,-773.5,{-1,0,3,2},4}),
+  latcomb_consts({9,-773.5,{1,0,3,2},6}),
+  latcomb_consts({12,773.5,{1,0,3,-2},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,0,-1},{1,0,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-773.5,{1,0,3,-2},2}),
+  latcomb_consts({4,773.5,{1,0,3,2},6}),
+  latcomb_consts({5,773.5,{-1,0,3,2},4}),
+  latcomb_consts({8,-773.5,{-1,0,3,2},4}),
+  latcomb_consts({9,-773.5,{1,0,3,2},6}),
+  latcomb_consts({12,773.5,{1,0,3,-2},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,2,1},{1,0,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-1547.0,{1,0,3,-2},2}),
+  latcomb_consts({4,1547.0,{1,0,3,2},6}),
+  latcomb_consts({5,1547.0,{-1,0,3,2},4}),
+  latcomb_consts({8,-1547.0,{-1,0,3,2},4}),
+  latcomb_consts({9,-1547.0,{1,0,3,2},6}),
+  latcomb_consts({12,1547.0,{1,0,3,-2},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,-2,-3},{1,0,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-0.0,{1,0,3,-2},2}),
+  latcomb_consts({4,0.0,{1,0,3,2},6}),
+  latcomb_consts({5,0.0,{-1,0,3,2},4}),
+  latcomb_consts({8,-0.0,{-1,0,3,2},4}),
+  latcomb_consts({9,-0.0,{1,0,3,2},6}),
+  latcomb_consts({12,0.0,{1,0,3,-2},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,2,3},{1,0,1,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-0.0,{1,0,3,-2},2}),
+  latcomb_consts({4,0.0,{1,0,3,2},6}),
+  latcomb_consts({5,0.0,{-1,0,3,2},4}),
+  latcomb_consts({8,-0.0,{-1,0,3,2},4}),
+  latcomb_consts({9,-0.0,{1,0,3,2},6}),
+  latcomb_consts({12,0.0,{1,0,3,-2},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,0,1},{1,1,0,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,1547.0,{2,3,0,-1},4}),
+  latcomb_consts({2,-1547.0,{2,3,0,1},6}),
+  latcomb_consts({3,-1547.0,{-2,3,0,1},2}),
+  latcomb_consts({8,1547.0,{-2,3,0,1},2}),
+  latcomb_consts({9,1547.0,{2,3,0,1},6}),
+  latcomb_consts({10,-1547.0,{2,3,0,-1},4}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,-2,-1},{1,1,0,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,773.5,{2,3,0,-1},4}),
+  latcomb_consts({2,-773.5,{2,3,0,1},6}),
+  latcomb_consts({3,-773.5,{-2,3,0,1},2}),
+  latcomb_consts({8,773.5,{-2,3,0,1},2}),
+  latcomb_consts({9,773.5,{2,3,0,1},6}),
+  latcomb_consts({10,-773.5,{2,3,0,-1},4}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,0,1},{1,1,0,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-773.5,{2,3,0,-1},4}),
+  latcomb_consts({2,773.5,{2,3,0,1},6}),
+  latcomb_consts({3,773.5,{-2,3,0,1},2}),
+  latcomb_consts({8,-773.5,{-2,3,0,1},2}),
+  latcomb_consts({9,-773.5,{2,3,0,1},6}),
+  latcomb_consts({10,773.5,{2,3,0,-1},4}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,0,-1},{1,1,0,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-1547.0,{2,3,0,-1},4}),
+  latcomb_consts({2,1547.0,{2,3,0,1},6}),
+  latcomb_consts({3,1547.0,{-2,3,0,1},2}),
+  latcomb_consts({8,-1547.0,{-2,3,0,1},2}),
+  latcomb_consts({9,-1547.0,{2,3,0,1},6}),
+  latcomb_consts({10,1547.0,{2,3,0,-1},4}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,0,-1},{1,1,0,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,773.5,{2,3,0,-1},4}),
+  latcomb_consts({2,-773.5,{2,3,0,1},6}),
+  latcomb_consts({3,-773.5,{-2,3,0,1},2}),
+  latcomb_consts({8,773.5,{-2,3,0,1},2}),
+  latcomb_consts({9,773.5,{2,3,0,1},6}),
+  latcomb_consts({10,-773.5,{2,3,0,-1},4}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,2,1},{1,1,0,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-773.5,{2,3,0,-1},4}),
+  latcomb_consts({2,773.5,{2,3,0,1},6}),
+  latcomb_consts({3,773.5,{-2,3,0,1},2}),
+  latcomb_consts({8,-773.5,{-2,3,0,1},2}),
+  latcomb_consts({9,-773.5,{2,3,0,1},6}),
+  latcomb_consts({10,773.5,{2,3,0,-1},4}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,-2,-3},{1,1,0,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-0.0,{2,3,0,-1},4}),
+  latcomb_consts({2,0.0,{2,3,0,1},6}),
+  latcomb_consts({3,0.0,{-2,3,0,1},2}),
+  latcomb_consts({8,-0.0,{-2,3,0,1},2}),
+  latcomb_consts({9,-0.0,{2,3,0,1},6}),
+  latcomb_consts({10,0.0,{2,3,0,-1},4}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,2,3},{1,1,0,1}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-0.0,{2,3,0,-1},4}),
+  latcomb_consts({2,0.0,{2,3,0,1},6}),
+  latcomb_consts({3,0.0,{-2,3,0,1},2}),
+  latcomb_consts({8,-0.0,{-2,3,0,1},2}),
+  latcomb_consts({9,-0.0,{2,3,0,1},6}),
+  latcomb_consts({10,0.0,{2,3,0,-1},4}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,0,1},{1,1,1,0}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,773.5,{1,2,-1,0},2}),
+  latcomb_consts({2,-773.5,{1,2,1,0},4}),
+  latcomb_consts({3,-773.5,{-1,2,1,0},2}),
+  latcomb_consts({4,773.5,{-1,2,1,0},2}),
+  latcomb_consts({5,773.5,{1,2,1,0},4}),
+  latcomb_consts({6,-773.5,{1,2,-1,0},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,-2,-1},{1,1,1,0}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-0.0,{1,2,-1,0},2}),
+  latcomb_consts({2,0.0,{1,2,1,0},4}),
+  latcomb_consts({3,0.0,{-1,2,1,0},2}),
+  latcomb_consts({4,-0.0,{-1,2,1,0},2}),
+  latcomb_consts({5,-0.0,{1,2,1,0},4}),
+  latcomb_consts({6,0.0,{1,2,-1,0},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,0,1},{1,1,1,0}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-773.5,{1,2,-1,0},2}),
+  latcomb_consts({2,773.5,{1,2,1,0},4}),
+  latcomb_consts({3,773.5,{-1,2,1,0},2}),
+  latcomb_consts({4,-773.5,{-1,2,1,0},2}),
+  latcomb_consts({5,-773.5,{1,2,1,0},4}),
+  latcomb_consts({6,773.5,{1,2,-1,0},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,0,-1},{1,1,1,0}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-773.5,{1,2,-1,0},2}),
+  latcomb_consts({2,773.5,{1,2,1,0},4}),
+  latcomb_consts({3,773.5,{-1,2,1,0},2}),
+  latcomb_consts({4,-773.5,{-1,2,1,0},2}),
+  latcomb_consts({5,-773.5,{1,2,1,0},4}),
+  latcomb_consts({6,773.5,{1,2,-1,0},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,0,-1},{1,1,1,0}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,773.5,{1,2,-1,0},2}),
+  latcomb_consts({2,-773.5,{1,2,1,0},4}),
+  latcomb_consts({3,-773.5,{-1,2,1,0},2}),
+  latcomb_consts({4,773.5,{-1,2,1,0},2}),
+  latcomb_consts({5,773.5,{1,2,1,0},4}),
+  latcomb_consts({6,-773.5,{1,2,-1,0},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,2,1},{1,1,1,0}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-0.0,{1,2,-1,0},2}),
+  latcomb_consts({2,0.0,{1,2,1,0},4}),
+  latcomb_consts({3,0.0,{-1,2,1,0},2}),
+  latcomb_consts({4,-0.0,{-1,2,1,0},2}),
+  latcomb_consts({5,-0.0,{1,2,1,0},4}),
+  latcomb_consts({6,0.0,{1,2,-1,0},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,-1,-2,-3},{1,1,1,0}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-0.0,{1,2,-1,0},2}),
+  latcomb_consts({2,0.0,{1,2,1,0},4}),
+  latcomb_consts({3,0.0,{-1,2,1,0},2}),
+  latcomb_consts({4,-0.0,{-1,2,1,0},2}),
+  latcomb_consts({5,-0.0,{1,2,1,0},4}),
+  latcomb_consts({6,0.0,{1,2,-1,0},2}),
+})));
+LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER.insert(std::make_pair(cell_valid({{0,1,2,3},{1,1,1,0}}),std::vector<latcomb_consts>({
+  latcomb_consts({1,-0.0,{1,2,-1,0},2}),
+  latcomb_consts({2,0.0,{1,2,1,0},4}),
+  latcomb_consts({3,0.0,{-1,2,1,0},2}),
+  latcomb_consts({4,-0.0,{-1,2,1,0},2}),
+  latcomb_consts({5,-0.0,{1,2,1,0},4}),
+  latcomb_consts({6,0.0,{1,2,-1,0},2}),
+})));
 }
