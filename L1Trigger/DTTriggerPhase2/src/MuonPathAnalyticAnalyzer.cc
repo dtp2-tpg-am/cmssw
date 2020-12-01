@@ -24,6 +24,7 @@ MuonPathAnalyticAnalyzer::MuonPathAnalyticAnalyzer(const ParameterSet &pset, edm
 
   setChiSquareThreshold(chi2Th_ * 100.);
   fillLAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER();
+  std::cout << "Filled" << std::endl;
 
   //shift
   int rawId;
@@ -124,9 +125,10 @@ void MuonPathAnalyticAnalyzer::analyze(MuonPathPtr &inMPath, std::vector<metaPri
     return;  // avoid running when mpath not in chosen SL (for 1SL fitting)
 
   auto mPath = std::make_shared<MuonPath>(inMPath);
-
+  mPath->setQuality(NOPATH);
+  buildLateralities();
   superlayer_datapath(mPath);
-
+  
   int wi[8], tdc[8], lat[8];
   DTPrimitivePtr Prim0(mPath->primitive(0));
   wi[0] = Prim0->channelId();
@@ -470,288 +472,7 @@ bool MuonPathAnalyticAnalyzer::isStraightPath(LATERAL_CASES sideComb[NUM_LAYERS]
 
   return (!resultado);
 }
-void MuonPathAnalyticAnalyzer::evaluatePathQuality(MuonPathPtr &mPath) {
-  int totalHighQ = 0, totalLowQ = 0;
 
-  if (debug_)
-    LogDebug("MuonPathAnalyticAnalyzer")
-        << "DTp2:evaluatePathQuality \t\t\t\t\t En evaluatePathQuality Evaluando PathQ. Celda base: "
-        << mPath->baseChannelId();
-  if (debug_)
-    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:evaluatePathQuality \t\t\t\t\t Total lateralidades: "
-                                      << totalNumValLateralities_;
-
-  mPath->setQuality(NOPATH);
-
-  for (int latIdx = 0; latIdx < totalNumValLateralities_; latIdx++) {
-    if (debug_)
-      LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:evaluatePathQuality \t\t\t\t\t Analizando combinacion de lateralidad: "
-                                        << lateralities_[latIdx][0] << " " << lateralities_[latIdx][1] << " "
-                                        << lateralities_[latIdx][2] << " " << lateralities_[latIdx][3];
-
-    evaluateLateralQuality(latIdx, mPath, &(latQuality_[latIdx]));
-
-    if (latQuality_[latIdx].quality == HIGHQ) {
-      totalHighQ++;
-      if (debug_)
-        LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:evaluatePathQuality \t\t\t\t\t\t Lateralidad HIGHQ";
-    }
-    if (latQuality_[latIdx].quality == LOWQ) {
-      totalLowQ++;
-      if (debug_)
-        LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:evaluatePathQuality \t\t\t\t\t\t Lateralidad LOWQ";
-    }
-  }
-  /*
-   * Quality stablishment 
-   */
-  if (totalHighQ == 1) {
-    mPath->setQuality(HIGHQ);
-  } else if (totalHighQ > 1) {
-    mPath->setQuality(HIGHQGHOST);
-  } else if (totalLowQ == 1) {
-    mPath->setQuality(LOWQ);
-  } else if (totalLowQ > 1) {
-    mPath->setQuality(LOWQGHOST);
-  }
-}
-
-void MuonPathAnalyticAnalyzer::evaluateLateralQuality(int latIdx, MuonPathPtr &mPath, LATQ_TYPE *latQuality) {
-  int layerGroup[3];
-  LATERAL_CASES sideComb[3];
-  PARTIAL_LATQ_TYPE latQResult[NUM_LAYERS] = {{false, 0}, {false, 0}, {false, 0}, {false, 0}};
-
-  // Default values.
-  latQuality->valid = false;
-  latQuality->bxValue = 0;
-  latQuality->quality = NOPATH;
-  latQuality->invalidateHitIdx = -1;
-
-  /* If, for a given laterality combination, the two consecutive 3-layer combinations
-     were a valid track, we will have found a right high-quality track, hence 
-     it will be unnecessary to check the remaining 2 combinations. 
-     In order to mimic the FPGA behaviour, we build a code that analyzes the 4 combinations
-     with an additional logic to discriminate the final quality of the track
-  */
-  for (int i = 0; i <= 3; i++) {
-    memcpy(layerGroup, LAYER_ARRANGEMENTS_[i], 3 * sizeof(int));
-
-    // Pick the laterality combination for each cell
-    for (int j = 0; j < 3; j++)
-      sideComb[j] = lateralities_[latIdx][layerGroup[j]];
-
-    validate(sideComb, layerGroup, mPath, &(latQResult[i]));
-  }
-  /*
-    Impose the condition for a complete laterality combination, that all combinations
-    should give the same BX vale to give a consistent track. 
-    */
-  if (!sameBXValue(latQResult)) {
-    if (debug_)
-      LogDebug("MuonPathAnalyticAnalyzer")
-          << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad DESCARTADA. Tolerancia de BX excedida";
-    return;
-  }
-
-  // two complementary valid tracks => full muon track.
-  if ((latQResult[0].latQValid && latQResult[1].latQValid) or (latQResult[0].latQValid && latQResult[2].latQValid) or
-      (latQResult[0].latQValid && latQResult[3].latQValid) or (latQResult[1].latQValid && latQResult[2].latQValid) or
-      (latQResult[1].latQValid && latQResult[3].latQValid) or (latQResult[2].latQValid && latQResult[3].latQValid)) {
-    latQuality->valid = true;
-
-    if (debug_)
-      LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t\t Valid BXs";
-    long int sumBX = 0, numValid = 0;
-    for (int i = 0; i <= 3; i++) {
-      if (debug_)
-        LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:analyze \t\t\t\t\t\t "
-                                          << "[" << latQResult[i].bxValue << "," << latQResult[i].latQValid << "]";
-      if (latQResult[i].latQValid) {
-        sumBX += latQResult[i].bxValue;
-        numValid++;
-      }
-    }
-
-    // mean time of all lateralities.
-    if (numValid == 1)
-      latQuality->bxValue = sumBX;
-    else if (numValid == 2)
-      latQuality->bxValue = (sumBX * (MEANTIME_2LAT)) / std::pow(2, 15);
-    else if (numValid == 3)
-      latQuality->bxValue = (sumBX * (MEANTIME_3LAT)) / std::pow(2, 15);
-    else if (numValid == 4)
-      latQuality->bxValue = (sumBX * (MEANTIME_4LAT)) / std::pow(2, 15);
-
-    latQuality->quality = HIGHQ;
-
-    if (debug_)
-      LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad ACEPTADA. HIGHQ.";
-  } else {
-    if (latQResult[0].latQValid or latQResult[1].latQValid or latQResult[2].latQValid or latQResult[3].latQValid) {
-      latQuality->valid = true;
-      latQuality->quality = LOWQ;
-      for (int i = 0; i < 4; i++)
-        if (latQResult[i].latQValid) {
-          latQuality->bxValue = latQResult[i].bxValue;
-          latQuality->invalidateHitIdx = omittedHit(i);
-          break;
-        }
-
-      if (debug_)
-        LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad ACEPTADA. LOWQ.";
-    } else {
-      if (debug_)
-        LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad DESCARTADA. NOPATH.";
-    }
-  }
-}
-
-/**
- * Validate, for a layer combination (3), cells and lateralities, if the temporal values
- * fullfill the mean-timer criteria. 
- */
-void MuonPathAnalyticAnalyzer::validate(LATERAL_CASES sideComb[3],
-                                     int layerIndex[3],
-                                     MuonPathPtr &mPath,
-                                     PARTIAL_LATQ_TYPE *latq) {
-  // Valor por defecto.
-  latq->bxValue = 0;
-  latq->latQValid = false;
-
-  if (debug_)
-    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t In validate, checking muon path for layers: "
-                                      << layerIndex[0] << "/" << layerIndex[1] << "/" << layerIndex[2];
-
-  if (debug_)
-    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t Partial lateralities: " << sideComb[0] << "/"
-                                      << sideComb[1] << "/" << sideComb[2];
-
-  int validCells = 0;
-  for (int j = 0; j < 3; j++)
-    if (mPath->primitive(layerIndex[j])->isValidTime())
-      validCells++;
-
-  if (validCells != 3) {
-    if (debug_)
-      LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t There is no valid cells.";
-    return;
-  }
-
-  if (debug_)
-    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t TDC values: "
-                                      << mPath->primitive(layerIndex[0])->tdcTimeStamp() << "/"
-                                      << mPath->primitive(layerIndex[1])->tdcTimeStamp() << "/"
-                                      << mPath->primitive(layerIndex[2])->tdcTimeStamp() << ".";
-
-  if (debug_)
-    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t Valid TIMES: "
-                                      << mPath->primitive(layerIndex[0])->isValidTime() << "/"
-                                      << mPath->primitive(layerIndex[1])->isValidTime() << "/"
-                                      << mPath->primitive(layerIndex[2])->isValidTime() << ".";
-
-  /* Vertical distances  */
-  int dVertMI = layerIndex[1] - layerIndex[0];
-  int dVertSM = layerIndex[2] - layerIndex[1];
-
-  /* Horizontal distances between lower/middle and middle/upper cells */
-  int dHorzMI = cellLayout_[layerIndex[1]] - cellLayout_[layerIndex[0]];
-  int dHorzSM = cellLayout_[layerIndex[2]] - cellLayout_[layerIndex[1]];
-
-  /* Pair index of layers that we are using 
-     SM => Upper + Middle
-     MI => Middle + Lower
-     We use pointers to simplify the code */
-  int *layPairSM = &layerIndex[1];
-  int *layPairMI = &layerIndex[0];
-
-  /* Pair combination of cells to compose the equation. */
-  LATERAL_CASES smSides[2], miSides[2];
-
-  /* Considering the index 0 of "sideComb" the laterality of the lower cells is stored,
-     we extract the laterality combiantion for SM and MI pairs */
-
-  memcpy(smSides, &sideComb[1], 2 * sizeof(LATERAL_CASES));
-
-  memcpy(miSides, &sideComb[0], 2 * sizeof(LATERAL_CASES));
-
-  long int bxValue = 0;
-  int coefsAB[2] = {0, 0}, coefsCD[2] = {0, 0};
-  /* It's neccesary to be careful with that pointer's indirection. We need to
-     retrieve the lateral coeficientes (+-1) from the lower/middle and
-     middle/upper cell's lateral combinations. They are needed to evaluate the
-     existance of a possible BX value, following it's calculation equation */
-  lateralCoeficients(miSides, coefsAB);
-  lateralCoeficients(smSides, coefsCD);
-
-  /* Each of the summs of the 'coefsCD' & 'coefsAB' give always as results 0, +-2
-   */
-
-  int denominator = dVertMI * (coefsCD[1] + coefsCD[0]) - dVertSM * (coefsAB[1] + coefsAB[0]);
-
-  if (denominator == 0) {
-    if (debug_)
-      LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t Imposible to calculate BX.";
-    return;
-  }
-
-  long int sumA = (long int)floor(MAXDRIFT * (dVertMI * dHorzSM - dVertSM * dHorzMI));
-  long int numerator =
-      (sumA + dVertMI * eqMainBXTerm(smSides, layPairSM, mPath) - dVertSM * eqMainBXTerm(miSides, layPairMI, mPath));
-
-  // These magic numbers are for doing divisions in the FW.
-  // These divisions are done with a precision of 18bits.
-  if (denominator == -1 * DENOM_TYPE1)
-    bxValue = (numerator * (-1 * DIVISION_HELPER1)) / std::pow(2, NBITS);
-  else if (denominator == -1 * DENOM_TYPE2)
-    bxValue = (numerator * (-1 * DIVISION_HELPER2)) / std::pow(2, NBITS);
-  else if (denominator == -1 * DENOM_TYPE3)
-    bxValue = (numerator * (-1 * DIVISION_HELPER3)) / std::pow(2, NBITS);
-  else if (denominator == DENOM_TYPE3)
-    bxValue = (numerator * (DIVISION_HELPER3)) / std::pow(2, NBITS);
-  else if (denominator == DENOM_TYPE2)
-    bxValue = (numerator * (DIVISION_HELPER2)) / std::pow(2, NBITS);
-  else if (denominator == DENOM_TYPE1)
-    bxValue = (numerator * (DIVISION_HELPER1)) / std::pow(2, NBITS);
-  else
-    LogDebug("MuonPathAnalyticAnalyzer") << "Different!";
-  if (bxValue < 0) {
-    if (debug_)
-      LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t No-valid combination. Negative BX.";
-    return;
-  }
-
-  for (int i = 0; i < 3; i++)
-    if (mPath->primitive(layerIndex[i])->isValidTime()) {
-      int diffTime = mPath->primitive(layerIndex[i])->tdcTimeStampNoOffset() - bxValue;
-
-      if (diffTime <= 0 or diffTime > round(MAXDRIFT)) {
-        if (debug_)
-          LogDebug("MuonPathAnalyticAnalyzer")
-              << "DTp2:validate \t\t\t\t\t\t\t Invalid BX value. at least one crazt TDC time";
-        return;
-      }
-    }
-  if (debug_)
-    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:validate \t\t\t\t\t\t\t  BX: " << bxValue;
-
-  /* If you reach here, the BX and partial laterality are considered are valid
-     */
-  latq->bxValue = bxValue;
-  latq->latQValid = true;
-}
-int MuonPathAnalyticAnalyzer::eqMainBXTerm(LATERAL_CASES sideComb[2], int layerIdx[2], MuonPathPtr &mPath) {
-  int eqTerm = 0, coefs[2];
-
-  lateralCoeficients(sideComb, coefs);
-
-  eqTerm = coefs[0] * mPath->primitive(layerIdx[0])->tdcTimeStampNoOffset() +
-           coefs[1] * mPath->primitive(layerIdx[1])->tdcTimeStampNoOffset();
-
-  if (debug_)
-    LogDebug("MuonPathAnalyticAnalyzer") << "DTp2:eqMainBXTerm \t\t\t\t\t In eqMainBXTerm EQTerm(BX): " << eqTerm;
-
-  return (eqTerm);
-}
 int MuonPathAnalyticAnalyzer::eqMainTerm(LATERAL_CASES sideComb[2], int layerIdx[2], MuonPathPtr &mPath, int bxValue) {
   int eqTerm = 0, coefs[2];
 
@@ -786,58 +507,6 @@ void MuonPathAnalyticAnalyzer::lateralCoeficients(LATERAL_CASES sideComb[2], int
     *(coefs) = -1;
     *(coefs + 1) = +1;
   }
-}
-
-/**
- * Determines if all valid partial lateral combinations share the same value
- * of 'bxValue'.
- */
-bool MuonPathAnalyticAnalyzer::sameBXValue(PARTIAL_LATQ_TYPE *latq) {
-  bool result = true;
-
-  if (debug_)
-    LogDebug("MuonPathAnalyticAnalyzer") << "Dtp2:sameBXValue bxTolerance_: " << bxTolerance_;
-
-  if (debug_)
-    LogDebug("MuonPathAnalyticAnalyzer") << "Dtp2:sameBXValue \t\t\t\t\t\t d01:" << abs(latq[0].bxValue - latq[1].bxValue);
-  if (debug_)
-    LogDebug("MuonPathAnalyticAnalyzer") << "Dtp2:sameBXValue \t\t\t\t\t\t d02:" << abs(latq[0].bxValue - latq[2].bxValue);
-  if (debug_)
-    LogDebug("MuonPathAnalyticAnalyzer") << "Dtp2:sameBXValue \t\t\t\t\t\t d03:" << abs(latq[0].bxValue - latq[3].bxValue);
-  if (debug_)
-    LogDebug("MuonPathAnalyticAnalyzer") << "Dtp2:sameBXValue \t\t\t\t\t\t d12:" << abs(latq[1].bxValue - latq[2].bxValue);
-  if (debug_)
-    LogDebug("MuonPathAnalyticAnalyzer") << "Dtp2:sameBXValue \t\t\t\t\t\t d13:" << abs(latq[1].bxValue - latq[3].bxValue);
-  if (debug_)
-    LogDebug("MuonPathAnalyticAnalyzer") << "Dtp2:sameBXValue \t\t\t\t\t\t d23:" << abs(latq[2].bxValue - latq[3].bxValue);
-
-  bool d01, d02, d03, d12, d13, d23;
-  d01 = (abs(latq[0].bxValue - latq[1].bxValue) <= bxTolerance_) ? true : false;
-  d02 = (abs(latq[0].bxValue - latq[2].bxValue) <= bxTolerance_) ? true : false;
-  d03 = (abs(latq[0].bxValue - latq[3].bxValue) <= bxTolerance_) ? true : false;
-  d12 = (abs(latq[1].bxValue - latq[2].bxValue) <= bxTolerance_) ? true : false;
-  d13 = (abs(latq[1].bxValue - latq[3].bxValue) <= bxTolerance_) ? true : false;
-  d23 = (abs(latq[2].bxValue - latq[3].bxValue) <= bxTolerance_) ? true : false;
-
-  /* 4 groups of partial combination of valid lateralities  */
-  if ((latq[0].latQValid && latq[1].latQValid && latq[2].latQValid && latq[3].latQValid) && !(d01 && d12 && d23))
-    result = false;
-  else
-      /* 4 posible cases of 3 groups of valid partial lateralities  */
-      if (((latq[0].latQValid && latq[1].latQValid && latq[2].latQValid) && !(d01 && d12)) or
-          ((latq[0].latQValid && latq[1].latQValid && latq[3].latQValid) && !(d01 && d13)) or
-          ((latq[0].latQValid && latq[2].latQValid && latq[3].latQValid) && !(d02 && d23)) or
-          ((latq[1].latQValid && latq[2].latQValid && latq[3].latQValid) && !(d12 && d23)))
-    result = false;
-  else
-      /* Lastly, the 4 possible cases of partial valid lateralities */
-
-      if (((latq[0].latQValid && latq[1].latQValid) && !d01) or ((latq[0].latQValid && latq[2].latQValid) && !d02) or
-          ((latq[0].latQValid && latq[3].latQValid) && !d03) or ((latq[1].latQValid && latq[2].latQValid) && !d12) or
-          ((latq[1].latQValid && latq[3].latQValid) && !d13) or ((latq[2].latQValid && latq[3].latQValid) && !d23))
-    result = false;
-
-  return result;
 }
 
 /** Calculate the parameters of the detected trayectories */
@@ -1092,14 +761,14 @@ void MuonPathAnalyticAnalyzer::superlayer_datapath(MuonPathPtr &mPath) {
 
   if (wires[0] < 0) wires[0] = wires[1]; 
   if (wires[1] < 0) wires[1] = wires[0]; 
-  if (wires[2] < 0) wires[2] = wires[1]-1; 
+  if (wires[2] < 0) wires[2] = wires[1] - 1; 
   if (wires[3] < 0) wires[3] = wires[2]; 
 
   if (debug_)
     LogDebug("MuonPathAnalyticAnalyzer") << ">>>>DEBUG: SUPERLAYER_DATAPATH" << endl
-      << "wires[0]:" << wires[0] << " wires[1]:" << wires[1] << " wires[2]:" << wires[2] <<" wires[3]:" << wires[3]<< endl 
-      << "t0[0]:" << t0s[0] << " t0[1]:" << t0s[1] << " t0[2]:" << t0s[2] <<" t0[3]:" << t0s[3]<< endl 
-      << "valid[0]:" << valids[0] << " valid[1]:" << valids[1] << " valid[2]:" << valids[2] <<" valid[3]:" << valids[3]<< endl 
+      << "wires[0]:" << wires[0] << " wires[1]:" << wires[1] << " wires[2]:" << wires[2] <<" wires[3]:" << wires[3] << endl 
+      << "t0[0]:" << t0s[0] << " t0[1]:" << t0s[1] << " t0[2]:" << t0s[2] <<" t0[3]:" << t0s[3] << endl 
+      << "valid[0]:" << valids[0] << " valid[1]:" << valids[1] << " valid[2]:" << valids[2] <<" valid[3]:" << valids[3] << endl 
       << ">>>>>>>>>>>" << endl; 
 
 
@@ -1114,8 +783,8 @@ void MuonPathAnalyticAnalyzer::superlayer_datapath(MuonPathPtr &mPath) {
 
 }
 
-void MuonPathAnalyticAnalyzer::segment_composer(int valids[cmsdt::NUM_LAYERS], int wires[cmsdt::NUM_LAYERS],
-    int t0s[cmsdt::NUM_LAYERS], int cell_horiz_layout[cmsdt::NUM_LAYERS], MuonPathPtr &mPath) {
+void MuonPathAnalyticAnalyzer::segment_composer(int valids[NUM_LAYERS], int wires[NUM_LAYERS],
+    int t0s[NUM_LAYERS], int cell_horiz_layout[NUM_LAYERS], MuonPathPtr &mPath) {
 
   if (debug_)
     LogDebug("MuonPathAnalyticAnalyzer") << ">>>>DEBUG: Inside segment composer" << endl
@@ -1139,13 +808,13 @@ void MuonPathAnalyticAnalyzer::segment_composer(int valids[cmsdt::NUM_LAYERS], i
   std::vector <latcomb_consts> my_latcomb_consts = {};
   for (auto & elem : LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER) 
     if (elem.first.valid[0] == valids[0] 
-      && elem.first.valid[1] == valids[1]
-      && elem.first.valid[2] == valids[2]
-      && elem.first.valid[3] == valids[3]
-      && elem.first.cell_horiz_layout[0] == cell_horiz_layout[0]
-      && elem.first.cell_horiz_layout[1] == cell_horiz_layout[1]
-      && elem.first.cell_horiz_layout[2] == cell_horiz_layout[2]
-      && elem.first.cell_horiz_layout[3] == cell_horiz_layout[3]){
+        && elem.first.valid[1] == valids[1]
+        && elem.first.valid[2] == valids[2]
+        && elem.first.valid[3] == valids[3]
+        && elem.first.cell_horiz_layout[0] == cell_horiz_layout[0]
+        && elem.first.cell_horiz_layout[1] == cell_horiz_layout[1]
+        && elem.first.cell_horiz_layout[2] == cell_horiz_layout[2]
+        && elem.first.cell_horiz_layout[3] == cell_horiz_layout[3]) {
 
       for (auto & ind_latcomb_consts : elem.second)
         my_latcomb_consts.push_back(ind_latcomb_consts);
@@ -1181,8 +850,8 @@ void MuonPathAnalyticAnalyzer::segment_composer(int valids[cmsdt::NUM_LAYERS], i
 
 int MuonPathAnalyticAnalyzer::validate_4hits_one_latcomb_reduced(int valids[cmsdt::NUM_LAYERS],
     int t0s[cmsdt::NUM_LAYERS], int cell_horiz_layout[cmsdt::NUM_LAYERS], latcomb_consts my_latcomb_consts) {
-  int t_perfect, t_tucked; 
-  
+
+  int t_perfect, t_tucked;  
   bool notAllValid = false; 
   for (int i = 0; i < cmsdt::NUM_LAYERS; i++){
     if (valids[i] == 0) notAllValid = true;
@@ -1208,6 +877,7 @@ int MuonPathAnalyticAnalyzer::validate_4hits_one_latcomb_reduced(int valids[cmsd
 }
 
 int MuonPathAnalyticAnalyzer::tuck_t0(int t, int t0s[4], int valids[4]){
+    
   double MAX_DRIFT_TIME_F = 386.75; 
   int min_t = -1, max_t = 99999;  
   for (int i = 0; i < 4; i++){

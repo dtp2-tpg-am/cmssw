@@ -91,18 +91,9 @@ private:
   void setCellLayout(const int layout[cmsdt::NUM_LAYERS]);
   void buildLateralities(void);
   bool isStraightPath(cmsdt::LATERAL_CASES sideComb[cmsdt::NUM_LAYERS]);
-
-  void evaluatePathQuality(MuonPathPtr &mPath);
-  void evaluateLateralQuality(int latIdx, MuonPathPtr &mPath, cmsdt::LATQ_TYPE *latQuality);
-  void validate(cmsdt::LATERAL_CASES sideComb[3], int layerIndex[3], MuonPathPtr &mPath, cmsdt::PARTIAL_LATQ_TYPE *latq);
-
-  int eqMainBXTerm(cmsdt::LATERAL_CASES sideComb[2], int layerIdx[2], MuonPathPtr &mPath);
-
+  
   int eqMainTerm(cmsdt::LATERAL_CASES sideComb[2], int layerIdx[2], MuonPathPtr &mPath, int bxValue);
-
   void lateralCoeficients(cmsdt::LATERAL_CASES sideComb[2], int *coefs);
-  bool sameBXValue(cmsdt::PARTIAL_LATQ_TYPE *latq);
-
   void calculatePathParameters(MuonPathPtr &mPath);
   void calcTanPhiXPosChamber(MuonPathPtr &mPath);
   void calcCellDriftAndXcoor(MuonPathPtr &mPath);
