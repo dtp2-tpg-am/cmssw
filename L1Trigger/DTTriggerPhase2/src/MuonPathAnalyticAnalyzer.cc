@@ -24,7 +24,6 @@ MuonPathAnalyticAnalyzer::MuonPathAnalyticAnalyzer(const ParameterSet &pset, edm
 
   setChiSquareThreshold(chi2Th_ * 100.);
   fillLAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER();
-  std::cout << "Filled" << std::endl;
 
   //shift
   int rawId;
