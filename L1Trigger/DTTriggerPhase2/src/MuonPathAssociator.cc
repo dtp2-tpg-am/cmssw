@@ -153,24 +153,24 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
               if (std::abs(SL1metaPrimitive->t0 - SL3metaPrimitive->t0) >= dT0_correlate_TP_)
                 continue;  //time match
             }
-            long int PosSL1 = (int)round(10 * SL1metaPrimitive->x / (10 * x_precision_));
-            long int PosSL3 = (int)round(10 * SL3metaPrimitive->x / (10 * x_precision_));
+            long int PosSL1 = (long int)round(10 * SL1metaPrimitive->x / (1. / pow(2, INCREASED_RES_POS)));
+            long int PosSL3 = (long int)round(10 * SL3metaPrimitive->x / (1. / pow(2, INCREASED_RES_POS)));
+            long int difPos_mm_x4 = PosSL3 - PosSL1;
             double NewSlope = -999.;
+
             if (use_LSB_) {
               long int newConstant = (int)(139.5 * 4);
-              long int difPos_mm_x4 = PosSL3 - PosSL1;
-              long int tanPsi_x4096_x128 = (difPos_mm_x4)*newConstant;
+              long int tanPsi_x4096_x128 = (difPos_mm_x4) * newConstant;
               long int tanPsi_x4096 = tanPsi_x4096_x128 / ((long int)pow(2, 5 + numberOfBits));
               if (tanPsi_x4096 < 0 && tanPsi_x4096_x128 % ((long int)pow(2, 5 + numberOfBits)) != 0)
                 tanPsi_x4096--;
-              NewSlope = -tanPsi_x4096 * tanPsi_precision_;
+              NewSlope = -tanPsi_x4096 / pow(2, INCREASED_RES_SLOPE);
             }
             double MeanT0 = (SL1metaPrimitive->t0 + SL3metaPrimitive->t0) / 2;
-            double MeanPos = (PosSL3 + PosSL1) / (2. / (x_precision_));
-            if (use_LSB_) {
-              MeanPos = floor(round(10. * (MeanPos / x_precision_)) * 0.1) * x_precision_;
-            }
-
+            double MeanPos = (PosSL1 + (difPos_mm_x4 >> 1)) / (10. * (pow(2, INCREASED_RES_POS)));
+            // if (use_LSB_) {
+              // MeanPos = floor(round(10. * (MeanPos / pow(2, INCREASED_RES_POS))) * 0.1) * pow(2, INCREASED_RES_POS);
+            // }
             DTSuperLayerId SLId1(SL1metaPrimitive->rawId);
             DTSuperLayerId SLId3(SL3metaPrimitive->rawId);
             DTWireId wireId1(SLId1, 2, 1);
@@ -215,16 +215,16 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
             for (int i = 0; i < 8; i++) {
               long int shift, slTime;
               if (i / 4 == 0) {
-                shift = round(shiftinfo_[wireId1.rawId()] / x_precision_);
+                shift = round(shiftinfo_[wireId1.rawId()] * 10 * pow(2, INCREASED_RES_POS));
                 slTime = SL1metaPrimitive->t0;
               } else {
-                shift = round(shiftinfo_[wireId3.rawId()] / x_precision_);
+                shift = round(shiftinfo_[wireId3.rawId()] * 10 * pow(2, INCREASED_RES_POS));
                 slTime = SL3metaPrimitive->t0;
               }
               if (wi[i] != -1) {
                 long int drift_speed_new = 889;
                 long int drift_dist_um_x4 = drift_speed_new * (((long int)tdc[i]) - slTime);
-                long int wireHorizPos_x4 = (42 * wi[i] + ((i + 1) % 2) * 21) / (10 * x_precision_);
+                long int wireHorizPos_x4 = (42 * wi[i] + ((i + 1) % 2) * 21) * pow(2, INCREASED_RES_POS);
                 long int pos_mm_x4;
 
                 if (lat[i] == 0) {
@@ -232,15 +232,13 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
                 } else {
                   pos_mm_x4 = wireHorizPos_x4 + (drift_dist_um_x4 >> 10);
                 }
-                sum_A = shift + pos_mm_x4 - (long int)round(MeanPos / x_precision_);
+                sum_A = shift + pos_mm_x4 - (long int)round(MeanPos * (10 * pow(2, INCREASED_RES_POS)));
                 sum_A = sum_A << (14 - numberOfBits);
-                sum_B = Z_FACTOR_CORR[i] * (long int)round(-NewSlope / tanPsi_precision_);
+                sum_B = Z_FACTOR_CORR[i] * (long int)round(-NewSlope * pow(2, INCREASED_RES_SLOPE));
                 chi2 += ((sum_A - sum_B) * (sum_A - sum_B)) >> 2;
               }
             }
-
             double newChi2 = (double)(chi2 >> 16) / (1024. * 100.);
-
             if (newChi2 > chi2corTh_)
               continue;
 
@@ -269,7 +267,7 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
               thisec = 4;
             if (se == 14)
               thisec = 10;
-            double phi = jm_x_cmssw_global.phi() - 0.5235988 * (thisec - 1);
+            double phi = jm_x_cmssw_global.phi() - PHI_CONV * (thisec - 1);
             double psi = atan(NewSlope);
             double phiB = hasPosRF(ChId.wheel(), ChId.sector()) ? psi - phi : -psi - phi;
 

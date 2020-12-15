@@ -20,6 +20,7 @@ process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(10))
 process.dtTriggerPhase2PrimitiveDigis.dump = True
 process.dtTriggerPhase2PrimitiveDigis.debug = False
 process.dtTriggerPhase2PrimitiveDigis.chi2Th = cms.untracked.double(0.16)
+process.dtTriggerPhase2PrimitiveDigis.print_prims = True
 
 #scenario
 process.dtTriggerPhase2PrimitiveDigis.scenario = 1

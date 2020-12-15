@@ -7,34 +7,32 @@
 // Previous definitions and declarations
 // ===============================================================================
 
-struct cell_valid {
-  int cell_horiz_layout[4]; 
-  int valid[4];
-
-  bool operator =(const cell_valid &o) const {
-    std::cout << "Equal " << std::endl; 
-    for (int i = 0; i<4; i++) {
-      std::cout << cell_horiz_layout[i] << " " <<   o.cell_horiz_layout[i] << " " << valid[i] << " " << o.valid[i] << std::endl; 
-      if (cell_horiz_layout[i] != o.cell_horiz_layout[i] || valid[i] != o.valid[i] ) return false; 
-    }
-    return true;
-  }
-
-  bool operator <(const cell_valid &o) const {
-    /*for (int i = 0; i<4; i++) {
-      std::cout << cell_horiz_layout[i] << " " <<   o.cell_horiz_layout[i] << " " << valid[i] << " " << o.valid[i] << std::endl; 
-      if ( !( (cell_horiz_layout[i] < o.cell_horiz_layout[i]) || ( (cell_horiz_layout[i] == o.cell_horiz_layout[i]) &&  valid[i] < o.valid[i]) ) ) return false; 
-    }
-    std::cout << "Smaller " << std::endl; */
-    return true;
-  } 
+struct MAGNITUDE {
+  int add;
+  int coeff[4];
+  int mult;
 };
 
-struct latcomb_consts {
-  int latcomb;
-  double numer_const; 
-  int numer_coeff[4]; 
-  int denom; 
+struct CONSTANTS {
+  MAGNITUDE pos;
+  MAGNITUDE slope;
+  MAGNITUDE slope_xhh;
+  MAGNITUDE t0;
+};
+
+struct LATCOMB_CONSTANTS {
+  int latcomb; 
+  CONSTANTS constants;
+};
+
+struct CELL_VALID_LAYOUT {
+  int cell_horiz_layout[4];
+  int valid[4];
+};
+
+struct CELL_VALID_LAYOUT_CONSTANTS {
+  CELL_VALID_LAYOUT cell_valid_layout;
+  LATCOMB_CONSTANTS latcomb_constants[6];
 };
 
 // ===============================================================================
@@ -87,34 +85,12 @@ public:
 private:
   // Private methods
   void analyze(MuonPathPtr &inMPath, std::vector<cmsdt::metaPrimitive> &metaPrimitives);
-
-  void setCellLayout(const int layout[cmsdt::NUM_LAYERS]);
-  void buildLateralities(void);
-  bool isStraightPath(cmsdt::LATERAL_CASES sideComb[cmsdt::NUM_LAYERS]);
-  
-  int eqMainTerm(cmsdt::LATERAL_CASES sideComb[2], int layerIdx[2], MuonPathPtr &mPath, int bxValue);
-  void lateralCoeficients(cmsdt::LATERAL_CASES sideComb[2], int *coefs);
-  void calculatePathParameters(MuonPathPtr &mPath);
-  void calcTanPhiXPosChamber(MuonPathPtr &mPath);
-  void calcCellDriftAndXcoor(MuonPathPtr &mPath);
-  void calcChiSquare(MuonPathPtr &mPath);
-
-  void calcTanPhiXPosChamber3Hits(MuonPathPtr &mPath);
-  void calcTanPhiXPosChamber4Hits(MuonPathPtr &mPath);
-
-  int omittedHit(int idx);
-  
-  // NEW ANALYZER FUNCTIONS
- 
   void fillLAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER();
-  
-  void superlayer_datapath(MuonPathPtr &mPath);
-  void segment_composer(int valids[cmsdt::NUM_LAYERS], int wires[cmsdt::NUM_LAYERS], int t0s[cmsdt::NUM_LAYERS],
-    int cell_horiz_layout[cmsdt::NUM_LAYERS], MuonPathPtr &mPath);
-  int validate_4hits_one_latcomb_reduced(int valids[cmsdt::NUM_LAYERS], int t0s[cmsdt::NUM_LAYERS],
-    int cell_horiz_layout[cmsdt::NUM_LAYERS], latcomb_consts my_latcomb_consts);
-  int tuck_t0(int t, int t0s[cmsdt::NUM_LAYERS], int valid[cmsdt::NUM_LAYERS]);
-  int changeLatToEmu (int lat);
+  void segment_fitter(DTSuperLayerId MuonPathSLId, int wires[4], int t0s[4], int valid[4], int reduced_times[4],
+    int cell_horiz_layout[4], LATCOMB_CONSTANTS latcomb_consts, int xwire_mm[4], int coarse_pos, int coarse_offset,
+    std::vector<cmsdt::metaPrimitive> &metaPrimitives);
+  int compute_parameter(MAGNITUDE constants, int t0s[4], int DIV_SHR_BITS, int INCREASED_RES);
+  std::vector <int> getLateralityCombination (int latcomb);
 
   // Private attributes
 
@@ -135,7 +111,7 @@ private:
   bool use_LSB_;
   double tanPsi_precision_;
   double x_precision_;
-  std::map<cell_valid, std::vector<latcomb_consts>> LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER;
+  std::vector <CELL_VALID_LAYOUT_CONSTANTS> LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER;
 
 };
 
