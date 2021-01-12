@@ -22,7 +22,8 @@ MuonPathAnalyticAnalyzer::MuonPathAnalyticAnalyzer(const ParameterSet &pset, edm
   if (debug_)
     LogDebug("MuonPathAnalyticAnalyzer") << "MuonPathAnalyzer: constructor";
 
-  setChiSquareThreshold(chi2Th_ * 100.);
+  setChiSquareThreshold(chi2Th_);
+  // setChiSquareThreshold(chi2Th_ * 100.);
   fillLAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER();
 
   //shift
