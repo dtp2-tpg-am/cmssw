@@ -13,6 +13,12 @@ struct MAGNITUDE {
   int mult;
 };
 
+struct MAGNITUDE_F {
+  float add;
+  float coeff[4];
+  float mult;
+};
+
 struct CONSTANTS {
   MAGNITUDE pos;
   MAGNITUDE slope;
@@ -20,9 +26,21 @@ struct CONSTANTS {
   MAGNITUDE t0;
 };
 
+struct CONSTANTS_F {
+  MAGNITUDE_F pos;
+  MAGNITUDE_F slope;
+  MAGNITUDE_F slope_xhh;
+  MAGNITUDE_F t0;
+};
+
 struct LATCOMB_CONSTANTS {
   int latcomb; 
   CONSTANTS constants;
+};
+
+struct LATCOMB_CONSTANTS_F {
+  int latcomb; 
+  CONSTANTS_F constants;
 };
 
 struct CELL_VALID_LAYOUT {
@@ -33,6 +51,11 @@ struct CELL_VALID_LAYOUT {
 struct CELL_VALID_LAYOUT_CONSTANTS {
   CELL_VALID_LAYOUT cell_valid_layout;
   LATCOMB_CONSTANTS latcomb_constants[6];
+};
+
+struct CELL_VALID_LAYOUT_CONSTANTS_F {
+  CELL_VALID_LAYOUT cell_valid_layout;
+  LATCOMB_CONSTANTS_F latcomb_constants[6];
 };
 
 // ===============================================================================
@@ -86,10 +109,12 @@ private:
   // Private methods
   void analyze(MuonPathPtr &inMPath, std::vector<cmsdt::metaPrimitive> &metaPrimitives);
   void fillLAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER();
+  void fillLAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER_REAL();
   void segment_fitter(DTSuperLayerId MuonPathSLId, int wires[4], int t0s[4], int valid[4], int reduced_times[4],
-    int cell_horiz_layout[4], LATCOMB_CONSTANTS latcomb_consts, int xwire_mm[4], int coarse_pos, int coarse_offset,
+    int cell_horiz_layout[4], LATCOMB_CONSTANTS latcomb_consts, LATCOMB_CONSTANTS_F latcomb_consts_exact, int xwire_mm[4], int coarse_pos, int coarse_offset,
     std::vector<cmsdt::metaPrimitive> &metaPrimitives);
   int compute_parameter(MAGNITUDE constants, int t0s[4], int DIV_SHR_BITS, int INCREASED_RES);
+  float compute_exact_parameter(MAGNITUDE_F constants, int t0s[4]);
   std::vector <int> getLateralityCombination (int latcomb);
 
   // Private attributes
@@ -112,6 +137,7 @@ private:
   double tanPsi_precision_;
   double x_precision_;
   std::vector <CELL_VALID_LAYOUT_CONSTANTS> LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER;
+  std::vector <CELL_VALID_LAYOUT_CONSTANTS_F> LAYOUT_VALID_TO_LATCOMB_CONSTS_ENCODER_REAL;
 
 };
 

@@ -180,6 +180,7 @@ namespace cmsdt {
   constexpr int CELL_SEMILENGTH = 21;
   // En milímetros / nanosegundo (velocidad de deriva)
   constexpr float DRIFT_SPEED = 0.0542;
+  constexpr float DRIFT_SPEED_F = (CELL_LENGTH / 2.) / MAXDRIFT;
   /*
   This is the maximum value than internal time can take. This is because
   internal time is cyclical due to the limited size of the time counters and
