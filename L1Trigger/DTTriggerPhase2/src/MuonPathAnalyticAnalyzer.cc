@@ -280,7 +280,6 @@ void MuonPathAnalyticAnalyzer::segment_fitter(DTSuperLayerId MuonPathSLId, int w
   double pos_f, slope_f, chi2_f;
   DTWireId wireId(MuonPathSLId, 2, 1);
 
-
   pos_f = double(pos) + int(10 * shiftinfo_[wireId.rawId()] * INCREASED_RES_POS_POW); // position in mm * precision in JM RF
   pos_f /=  (10. * INCREASED_RES_POS_POW); // position in cm w.r.t center of the chamber
   slope_f = - (double(slope) / INCREASED_RES_SLOPE_POW);
