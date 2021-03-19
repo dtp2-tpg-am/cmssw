@@ -13,8 +13,8 @@ process.GlobalTag.globaltag = "80X_dataRun2_2016SeptRepro_v7"
 process.load("L1Trigger.DTTriggerPhase2.CalibratedDigis_cfi")
 process.load("L1Trigger.DTTriggerPhase2.dtTriggerPhase2PrimitiveDigis_cfi")
 
-process.dtTriggerPhase2PrimitiveDigis.dump = False
-process.dtTriggerPhase2PrimitiveDigis.debug = False
+process.dtTriggerPhase2PrimitiveDigis.dump = True
+process.dtTriggerPhase2PrimitiveDigis.debug = True
 process.dtTriggerPhase2PrimitiveDigis.chi2Th = cms.untracked.double(0.16)
 
 #process.load("FWCore.MessageLogger.MessageLogger_cfi")
@@ -32,20 +32,24 @@ process.dtTriggerPhase2PrimitiveDigis.scenario = 0 #0 is mc, 1 is data, 2 is sli
 process.CalibratedDigis.dtDigiTag = "simMuonDTDigis"
 process.CalibratedDigis.scenario = 0
 
+# Bayes
 process.dtTriggerPhase2BayesPrimitiveDigis = process.dtTriggerPhase2PrimitiveDigis.clone()
 process.dtTriggerPhase2BayesPrimitiveDigis.algo = 1 ## bayes grouping
-process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.minNLayerHits = 4
-process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.minSingleSLHitsMax = 2 
-process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.minSingleSLHitsMin = 2 
-process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.minUncorrelatedHits = 3
-process.dtTriggerPhase2BayesPrimitiveDigis.timeTolerance = cms.int32(26)
 
+process.dtTriggerPhase2BayesPrimitiveDigis.minHits4Fit = 3
+process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.minNLayerHits = 3
+process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.minSingleSLHitsMax = 3 
+process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.minSingleSLHitsMin = 0 
+process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.allowedVariance = 1
+process.dtTriggerPhase2BayesPrimitiveDigis.timeTolerance = cms.int32(300)
+
+# STD
 process.dtTriggerPhase2StdPrimitiveDigis   = process.dtTriggerPhase2PrimitiveDigis.clone()
 process.dtTriggerPhase2StdPrimitiveDigis.algo = 0 ## initial grouping
 
 process.source = cms.Source("PoolSource",
                             fileNames = cms.untracked.vstring(
-                'file:////eos/cms/store/user/folguera/P2L1TUpgrade/Mu_FlatPt2to100-pythia8-gun_file.root',
+                                'file:////eos/cms/store/user/folguera/P2L1TUpgrade/Mu_FlatPt2to100-pythia8-gun_file.root',
 ##'/store/mc/PhaseIITDRSpring19DR/Mu_FlatPt2to100-pythia8-gun/GEN-SIM-DIGI-RAW/PU200_106X_upgrade2023_realistic_v3-v2/70000/941C1EA3-141B-6841-AE07-8E5D3ED57461.root',
 ##'/store/mc/PhaseIITDRSpring19DR/Mu_FlatPt2to100-pythia8-gun/GEN-SIM-DIGI-RAW/PU200_106X_upgrade2023_realistic_v3-v2/70000/A37FFE18-21EF-5648-AFC8-56BF9CA76B58.root',
 ##'/store/mc/PhaseIITDRSpring19DR/Mu_FlatPt2to100-pythia8-gun/GEN-SIM-DIGI-RAW/PU200_106X_upgrade2023_realistic_v3-v2/70000/86F62E38-D278-2841-8BB4-B25FCD44BFF7.root',
@@ -81,9 +85,3 @@ process.p = cms.Path(process.CalibratedDigis *
                      process.dtTriggerPhase2StdPrimitiveDigis
 )
 process.this_is_the_end = cms.EndPath(process.out)
-
-
-
-
-
-

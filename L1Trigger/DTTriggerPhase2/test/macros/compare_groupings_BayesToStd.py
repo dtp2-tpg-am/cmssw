@@ -59,7 +59,7 @@ ROOT.gROOT.SetBatch(True)
 ##
 ## Main part
 ##
-files = ['/afs/cern.ch/user/f/folguera/workdir/Upgrade/DTTP/CMSSW_11_2_0_pre2/src/DTTriggerPhase2Primitives.root']
+files = ['/afs/cern.ch/user/n/ntrevisa/work/DT/CMSSW_11_2_0_pre2/src/DTTriggerPhase2Primitives.root']
 
 print "Number of files: %d" % len(files)
 events = Events(files)    
@@ -155,7 +155,7 @@ for frac in [0.25,0.5,0.75,1.00]:
     count = 0
     
     if (dumpToFile): 
-        f= open("EventDumpList_Nov5.log","w+")
+        f= open("EventDumpList_BayesToStd.log","w+")
     
     for ev in events:
         if not count%10:  print count, events.size()
@@ -218,5 +218,5 @@ for frac in [0.25,0.5,0.75,1.00]:
 
 
 import pickle 
-with open('GroupingComparison_BayesToStd_Nov5.pickle', 'wb') as handle:
+with open('GroupingComparison_BayesToStd.pickle', 'wb') as handle:
     pickle.dump(outputDict, handle, protocol=pickle.HIGHEST_PROTOCOL)

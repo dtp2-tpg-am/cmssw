@@ -11,7 +11,7 @@ using namespace cmsdt;
 MuonPathAnalyzerPerSL::MuonPathAnalyzerPerSL(const ParameterSet &pset, edm::ConsumesCollector &iC)
     : MuonPathAnalyzer(pset, iC),
       bxTolerance_(30),
-      minQuality_(LOWQGHOST),
+      minQuality_(H3PLUS0),
       chiSquareThreshold_(50),
       debug_(pset.getUntrackedParameter<bool>("debug")),
       chi2Th_(pset.getUntrackedParameter<double>("chi2Th")),
@@ -90,7 +90,7 @@ constexpr int MuonPathAnalyzerPerSL::LAYER_ARRANGEMENTS_[NUM_LAYERS][NUM_CELL_CO
 };
 
 //------------------------------------------------------------------
-//--- Métodos privados
+//--- Metodos privados
 //------------------------------------------------------------------
 
 void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimitive> &metaPrimitives) {
@@ -200,8 +200,10 @@ void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimit
         LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t laterality #- " << i << " before if:";
 
       if (latQuality_[i].valid and
-          (((mPath->quality() == HIGHQ or mPath->quality() == HIGHQGHOST) and latQuality_[i].quality == HIGHQ) or
-           ((mPath->quality() == LOWQ or mPath->quality() == LOWQGHOST) and latQuality_[i].quality == LOWQ))) {
+	  ( (mPath->quality() == H4PLUS0 and latQuality_[i].quality == H4PLUS0) or
+	    (mPath->quality() == H3PLUS0 and latQuality_[i].quality == H3PLUS0) )) {
+	// (((mPath->quality() == HIGHQ or mPath->quality() == HIGHQGHOST) and latQuality_[i].quality == HIGHQ) or
+	//  ((mPath->quality() == LOWQ or mPath->quality() == LOWQGHOST) and latQuality_[i].quality == LOWQ))) {
         if (debug_)
           LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t laterality #- " << i << " inside if";
         mPath->setBxTimeValue(latQuality_[i].bxValue);
@@ -243,15 +245,17 @@ void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimit
           LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t  calculating parameters ";
         calculatePathParameters(mpAux);
         /* 
-		 * After calculating the parameters, and if it is a 4-hit fit,
-		 * if the resultant chi2 is higher than the programmed threshold, 
-		 * the mpath is eliminated and we go to the next element
-		 */
-        if ((mpAux->quality() == HIGHQ or mpAux->quality() == HIGHQGHOST) &&
+	 * After calculating the parameters, and if it is a 4-hit fit,
+	 * if the resultant chi2 is higher than the programmed threshold, 
+	 * the mpath is eliminated and we go to the next element
+	 */
+        // if ((mpAux->quality() == HIGHQ or mpAux->quality() == HIGHQGHOST) &&
+        if ((mpAux->quality() == H4PLUS0) &&
             mpAux->chiSquare() > chiSquareThreshold_) {  //check this if!!!
           if (debug_)
             LogDebug("MuonPathAnalyzerPerSL")
-                << "DTp2:analyze \t\t\t\t\t  HIGHQ or HIGHQGHOST but min chi2 or Q test not satisfied ";
+	      << "DTp2:analyze \t\t\t\t\t  H4PLUS0 but min chi2 or Q test not satisfied ";
+	  //<< "DTp2:analyze \t\t\t\t\t  HIGHQ or HIGHQGHOST but min chi2 or Q test not satisfied ";
         } else {
           if (debug_)
             LogDebug("MuonPathAnalyzerPerSL") << "DTp2:analyze \t\t\t\t\t  inside else, returning values: ";
@@ -311,8 +315,9 @@ void MuonPathAnalyzerPerSL::analyze(MuonPathPtr &inMPath, std::vector<metaPrimit
                 << "DTp2:analyze \t\t\t\t\t\t\t\t  pushing back metaPrimitive at x=" << jm_x << " tanPhi:" << jm_tanPhi
                 << " t0:" << jm_t0;
 
-          if (mpAux->quality() == HIGHQ or
-              mpAux->quality() == HIGHQGHOST) {  //keep only the values with the best chi2 among lateralities
+          // if (mpAux->quality() == HIGHQ or mpAux->quality() == HIGHQGHOST) {  
+          if (mpAux->quality() == H4PLUS0) {  
+	    //keep only the values with the best chi2 among lateralities
             if ((chi2 < best_chi2) && (std::abs(jm_tanPhi) <= tanPhiTh_)) {
               chi2_jm_tanPhi = jm_tanPhi;
               chi2_jm_x = (mpAux->horizPos() / 10.) + shiftinfo_[wireId.rawId()];
@@ -478,6 +483,7 @@ bool MuonPathAnalyzerPerSL::isStraightPath(LATERAL_CASES sideComb[NUM_LAYERS]) {
 
   return (!resultado);
 }
+
 void MuonPathAnalyzerPerSL::evaluatePathQuality(MuonPathPtr &mPath) {
   int totalHighQ = 0, totalLowQ = 0;
 
@@ -499,29 +505,39 @@ void MuonPathAnalyzerPerSL::evaluatePathQuality(MuonPathPtr &mPath) {
 
     evaluateLateralQuality(latIdx, mPath, &(latQuality_[latIdx]));
 
-    if (latQuality_[latIdx].quality == HIGHQ) {
+    // if (latQuality_[latIdx].quality == HIGHQ) {
+    if (latQuality_[latIdx].quality == H4PLUS0) {
       totalHighQ++;
       if (debug_)
         LogDebug("MuonPathAnalyzerPerSL") << "DTp2:evaluatePathQuality \t\t\t\t\t\t Lateralidad HIGHQ";
     }
-    if (latQuality_[latIdx].quality == LOWQ) {
+    // if (latQuality_[latIdx].quality == LOWQ) {
+    if (latQuality_[latIdx].quality == H3PLUS0) {
       totalLowQ++;
       if (debug_)
         LogDebug("MuonPathAnalyzerPerSL") << "DTp2:evaluatePathQuality \t\t\t\t\t\t Lateralidad LOWQ";
     }
   }
-  /*
-   * Quality stablishment 
-   */
-  if (totalHighQ == 1) {
-    mPath->setQuality(HIGHQ);
-  } else if (totalHighQ > 1) {
-    mPath->setQuality(HIGHQGHOST);
-  } else if (totalLowQ == 1) {
-    mPath->setQuality(LOWQ);
-  } else if (totalLowQ > 1) {
-    mPath->setQuality(LOWQGHOST);
+
+  // // Old quality assignment
+  // if (totalHighQ == 1) {
+  //   mPath->setQuality(HIGHQ);
+  // } else if (totalHighQ > 1) {
+  //   mPath->setQuality(HIGHQGHOST);
+  // } else if (totalLowQ == 1) {
+  //   mPath->setQuality(LOWQ);
+  // } else if (totalLowQ > 1) {
+  //   mPath->setQuality(LOWQGHOST);
+  // }
+
+  // New quality assignment
+  if (totalHighQ >= 1) {
+    mPath->setQuality(H4PLUS0);
+  } 
+  else if (totalLowQ >= 1) {
+    mPath->setQuality(H3PLUS0);
   }
+
 }
 
 void MuonPathAnalyzerPerSL::evaluateLateralQuality(int latIdx, MuonPathPtr &mPath, LATQ_TYPE *latQuality) {
@@ -562,6 +578,7 @@ void MuonPathAnalyzerPerSL::evaluateLateralQuality(int latIdx, MuonPathPtr &mPat
   }
 
   // two complementary valid tracks => full muon track.
+  // At least two 3-hits tracks in the same SL --> a 4-hits track is present here: assign H4PLUS0 quality
   if ((latQResult[0].latQValid && latQResult[1].latQValid) or (latQResult[0].latQValid && latQResult[2].latQValid) or
       (latQResult[0].latQValid && latQResult[3].latQValid) or (latQResult[1].latQValid && latQResult[2].latQValid) or
       (latQResult[1].latQValid && latQResult[3].latQValid) or (latQResult[2].latQValid && latQResult[3].latQValid)) {
@@ -590,14 +607,20 @@ void MuonPathAnalyzerPerSL::evaluateLateralQuality(int latIdx, MuonPathPtr &mPat
     else if (numValid == 4)
       latQuality->bxValue = (sumBX * (MEANTIME_4LAT)) / std::pow(2, 15);
 
-    latQuality->quality = HIGHQ;
+    // latQuality->quality = HIGHQ;
+    latQuality->quality = H4PLUS0;
 
     if (debug_)
-      LogDebug("MuonPathAnalyzerPerSL") << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad ACEPTADA. HIGHQ.";
-  } else {
+      LogDebug("MuonPathAnalyzerPerSL") << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad ACEPTADA. H4PLUS0.";
+  } 
+  // Just one 3-hits tracks in the SL --> a 3-hits track is present here: assign H3PLUS0 quality
+  else {
     if (latQResult[0].latQValid or latQResult[1].latQValid or latQResult[2].latQValid or latQResult[3].latQValid) {
       latQuality->valid = true;
-      latQuality->quality = LOWQ;
+
+      // latQuality->quality = LOWQ;
+      latQuality->quality = H3PLUS0;
+
       for (int i = 0; i < 4; i++)
         if (latQResult[i].latQValid) {
           latQuality->bxValue = latQResult[i].bxValue;
@@ -606,7 +629,7 @@ void MuonPathAnalyzerPerSL::evaluateLateralQuality(int latIdx, MuonPathPtr &mPat
         }
 
       if (debug_)
-        LogDebug("MuonPathAnalyzerPerSL") << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad ACEPTADA. LOWQ.";
+        LogDebug("MuonPathAnalyzerPerSL") << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad ACEPTADA. H3PLUS0.";
     } else {
       if (debug_)
         LogDebug("MuonPathAnalyzerPerSL") << "DTp2:evaluateLateralQuality \t\t\t\t\t Lateralidad DESCARTADA. NOPATH.";
@@ -858,12 +881,13 @@ void MuonPathAnalyzerPerSL::calculatePathParameters(MuonPathPtr &mPath) {
   if (debug_)
     LogDebug("MuonPathAnalyzerPerSL") << "DTp2:calculatePathParameters \t\t\t\t\t\t  checking mPath->quality() "
                                       << mPath->quality();
-  if (mPath->quality() == HIGHQ or mPath->quality() == HIGHQGHOST) {
+  // if (mPath->quality() == HIGHQ or mPath->quality() == HIGHQGHOST) {
+  if (mPath->quality() == H4PLUS0){ // or mPath->quality() == HIGHQGHOST) {
     if (debug_)
       LogDebug("MuonPathAnalyzerPerSL")
           << "DTp2:calculatePathParameters \t\t\t\t\t\t\t  Quality test passed, now calcTanPhiXPosChamber4Hits(mPath) ";
     calcTanPhiXPosChamber4Hits(mPath);
-  } else {
+  } else if (mPath->quality() == H3PLUS0){
     if (debug_)
       LogDebug("MuonPathAnalyzerPerSL")
           << "DTp2:calculatePathParameters \t\t\t\t\t\t\t  Quality test NOT passed calcTanPhiXPosChamber3Hits(mPath) ";

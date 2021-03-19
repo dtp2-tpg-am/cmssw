@@ -23,30 +23,31 @@ for st in ["MB1","MB2","MB3","MB4"]:
 
             plots.append("h%sRes_%s_%s" %(var,st,q))
             titles["h%sRes_%s_%s" %(var,st,q)] = titlename
-    plots.append("hMatchingEff_%s" %(st))
-    titles["hMatchingEff_%s" %(st)] = " ; muon quality ; Efficiency = N_{std}/N_{bayes}"  
+    #plots.append("hMatchingEff_%s" %(st))
+    #print("hMatchingEff_%s" %(st))
+    #titles["hMatchingEff_%s" %(st)] = " ; muon quality ; Efficiency = N_{std}/N_{bayes}"  
 
-outpath = "/afs/cern.ch/user/f/folguera/www/private/L1TPhase2/DTTP/201104_Groupings/"
+outpath = "/afs/cern.ch/user/n/ntrevisa/work/DT/CMSSW_11_2_0_pre2/src/Groupings/"
 if not os.path.exists(outpath):
     os.mkdir(outpath)
-    print "cp ~folguera/public/utils/index.php %s/" %outpath
-    os.system("cp ~folguera/public/utils/index.php %s/" %outpath)
-os.system("cp EventDumpList.log %s/" %outpath)
+    print "cp /afs/cern.ch/user/n/ntrevisa/public/utils/index.php %s/" %outpath
+    os.system("cp /afs/cern.ch/user/n/ntrevisa/public/utils/index.php %s/" %outpath)
+os.system("cp EventDumpList_BayesToStd.log %s/" %outpath)
 
 outpath = outpath + "BayesToStd/"
 if not os.path.exists(outpath):
     os.mkdir(outpath)
-    print "cp ~folguera/public/utils/index.php %s/" %outpath
-    os.system("cp ~folguera/public/utils/index.php %s/" %outpath)
+    print "cp /afs/cern.ch/user/n/ntrevisa/public/utils/index.php %s/" %outpath
+    os.system("cp /afs/cern.ch/user/n/ntrevisa/public/utils/index.php %s/" %outpath)
 
-outFile = ROOT.TFile("GroupingComparison_BayesToStd_Nov4.root","RECREATE")
+outFile = ROOT.TFile("GroupingComparison_BayesToStd.root","RECREATE")
 outFile.cd()
 
 ROOT.gROOT.ProcessLine('.L PlotTemplate.C+')
 ROOT.gROOT.SetBatch(True)
 ROOT.gStyle.SetOptStat(0)
 
-with open('GroupingComparison_BayesToStd_Nov4.pickle', 'rb') as handle:
+with open('GroupingComparison_BayesToStd.pickle', 'rb') as handle:
     b = pickle.load(handle)
 
 leg = ROOT.TLegend(0.6,0.6,0.88,0.4);

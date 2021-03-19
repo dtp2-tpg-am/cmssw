@@ -38,7 +38,8 @@ public:
   void setMinHits4Fit(int h) { minHits4Fit_ = h; };
   void setChiSquareThreshold(float ch2Thr) { chiSquareThreshold_ = ch2Thr; };
   void setMinimumQuality(cmsdt::MP_QUALITY q) {
-    if (minQuality_ >= cmsdt::LOWQGHOST)
+    // if (minQuality_ >= cmsdt::LOWQGHOST)
+    if (minQuality_ >= cmsdt::H3PLUS0)
       minQuality_ = q;
   };
 
@@ -78,6 +79,7 @@ private:
   float chiSquareThreshold_;
   short minHits4Fit_;
   int cellLayout_[NLayers];
+  bool splitPathPerSL_;
 };
 
 #endif

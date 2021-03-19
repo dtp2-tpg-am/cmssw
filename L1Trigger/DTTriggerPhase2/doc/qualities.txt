@@ -2,13 +2,23 @@ Just to keep track of the fast evolving quality definition
 #########################################################
 DT quality code
 ---------------
-1, 2: 3-hit in a single SL
-3, 4: 4-hit in a single SL (3 means that there are other TP in this SL, 4 that it is the only one)
-5: 3-hit in a single SL + 1 or 2 hits in the other SL
-6: 3-hit in both SL
-7: 4-hit in a single SL + 1 or 2 hits in the other SL
-8: 4-hit in a SL + 3-hit in the other SL
-9: 4-hit in both SL
+1: 3 hits track
+2: 3+2 hits track
+3: 4 hits track
+4: 4+2 hits track
+5: -
+6: 3+3 hits track
+7: 4+3 hits track
+8: 4+4 hits track
+
+### Old definition:
+### 1, 2: 3-hit in a single SL
+### 3, 4: 4-hit in a single SL (3 means that there are other TP in this SL, 4 that it is the only one)
+### 5: 3-hit in a single SL + 1 or 2 hits in the other SL
+### 6: 3-hit in both SL
+### 7: 4-hit in a single SL + 1 or 2 hits in the other SL
+### 8: 4-hit in a SL + 3-hit in the other SL
+### 9: 4-hit in both SL
 
 RPC Flag (tells how RPC was used) #FIXME being implemented, not everything available yet
 ---------------------------------

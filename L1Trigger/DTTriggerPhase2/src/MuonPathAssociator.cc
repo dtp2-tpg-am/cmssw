@@ -248,16 +248,28 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
             useFitSL1[sl1] = true;
             useFitSL3[sl3] = true;
 
+	    // Give qualities to correlated pairs of SL tracks
             int quality = 0;
-            if (SL3metaPrimitive->quality <= 2 and SL1metaPrimitive->quality <= 2)
-              quality = 6;
 
-            if ((SL3metaPrimitive->quality >= 3 && SL1metaPrimitive->quality <= 2) or
-                (SL1metaPrimitive->quality >= 3 && SL3metaPrimitive->quality <= 2))
-              quality = 8;
+	    // In both SLs we have one track with 3 hits 
+            // if (SL3metaPrimitive->quality <= 2 and SL1metaPrimitive->quality <= 2)
+            if (SL3metaPrimitive->quality == H3PLUS0 and SL1metaPrimitive->quality == H3PLUS0)
+              //quality = 6;
+	      quality = H3PLUS3;
 
-            if (SL3metaPrimitive->quality >= 3 && SL1metaPrimitive->quality >= 3)
-              quality = 9;
+	    // In one SL we have a 3-hits track, in the other a 4-hits track
+            // if ((SL3metaPrimitive->quality <= 2 && SL1metaPrimitive->quality >= 3) or
+            //     (SL1metaPrimitive->quality <= 2 && SL3metaPrimitive->quality >= 3))
+            if ((SL3metaPrimitive->quality == H3PLUS0 && SL1metaPrimitive->quality == H4PLUS0) or
+                (SL1metaPrimitive->quality == H3PLUS0 && SL3metaPrimitive->quality == H4PLUS0))
+              //quality = 8;
+	      quality = H4PLUS3;
+
+	    // In both SLs we have one track with 4 hits 
+            // if (SL3metaPrimitive->quality >= 3 && SL1metaPrimitive->quality >= 3)
+            if (SL3metaPrimitive->quality == H4PLUS0 && SL1metaPrimitive->quality == H4PLUS0)
+              // quality = 9;
+              quality = H4PLUS4;
 
             double z = 0;
             if (ChId.station() >= 3)
@@ -345,6 +357,7 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
 
           if (at_least_one_correlation == false &&
               allow_confirmation_ == true) {  //no correlation was found, trying with pairs of two digis in the other SL
+	    cout << "no correlation was found, trying with pairs of two digis in the other SL" << endl;
             int matched_digis = 0;
             double minx = minx_match_2digis_;
             double min2x = minx_match_2digis_;
@@ -395,7 +408,8 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
                   best_layer = dtLId.layer();
                   best_lat = lat;
                   matched_digis++;
-                } else if ((std::abs(x_inSL3 - x_wire) >= minx) && (std::abs(x_inSL3 - x_wire) < min2x)) {
+                }
+		else if ((std::abs(x_inSL3 - x_wire) >= minx) && (std::abs(x_inSL3 - x_wire) < min2x)) {
                   min2x = std::abs(x_inSL3 - x_wire);
                   next_wire = (*digiIt).wire();
                   next_tdc = (*digiIt).time();
@@ -405,10 +419,16 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
                 }
               }
             }
+	    cout << "I have found these confirmation hits: " << best_layer << " and " << next_layer << endl;
+	    // 4 hits in SL1 and at least 2 in SL3 to confirm the track
             if (matched_digis >= 2 and best_layer != -1 and next_layer != -1) {
-              int new_quality = 7;
-              if (SL1metaPrimitive->quality <= 2)
-                new_quality = 5;
+              // int new_quality = 7;
+              int new_quality = H4PLUS2;
+	      cout << "confirmed muon path here!" << endl;
+	      // 3 hits in SL1 and at least 2 in SL3 to confirm the track
+              if (SL1metaPrimitive->quality == H3PLUS0)
+                // new_quality = 5;
+                new_quality = H3PLUS2;
 
               int wi1 = -1;
               int tdc1 = -1;
@@ -610,10 +630,14 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
                 }
               }
             }
+	    cout << "I have found these confirmation hits: " << best_layer << " and " << next_layer << endl;
+	    // 4 hits in SL3 and at least 2 in SL1 to confirm the track
             if (matched_digis >= 2 and best_layer != -1 and next_layer != -1) {
-              int new_quality = 7;
+              int new_quality = H4PLUS2;
+	      cout << "confirmed muon path here!" << endl;
+	      // 3 hits in SL3 and at least 2 in SL1 to confirm the track
               if (SL3metaPrimitive->quality <= 2)
-                new_quality = 5;
+                new_quality = H3PLUS2;
 
               int wi1 = -1;
               int tdc1 = -1;
@@ -755,7 +779,7 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
           removeSharingHits(confirmedMetaPrimitives, chamberMetaPrimitives, outMPaths);
         }
 
-        //finish SL3-SL1
+        // finish SL3-SL1
         if (at_least_one_correlation == false || clean_chi2_correlation_) {
           if (debug_ && !at_least_one_correlation)
             LogDebug("MuonPathAssociator")

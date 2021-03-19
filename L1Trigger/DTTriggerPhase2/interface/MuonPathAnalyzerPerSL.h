@@ -33,7 +33,8 @@ public:
   void setChiSquareThreshold(float ch2Thr) { chiSquareThreshold_ = ch2Thr; };
 
   void setMinQuality(cmsdt::MP_QUALITY q) {
-    if (minQuality_ >= cmsdt::LOWQGHOST)
+    // if (minQuality_ >= cmsdt::LOWQGHOST)
+    if (minQuality_ >= cmsdt::H3PLUS0)
       minQuality_ = q;
   };
   cmsdt::MP_QUALITY minQuality(void) { return minQuality_; };

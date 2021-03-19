@@ -35,11 +35,24 @@
    CHIGHQ => 4h + 2h/1h
    HIGHLOWQ => 4h + 3h
    HIGHHIGHQ => 4h + 4h
+
+My new proposed names, according to new qualities definitions (H = HITS):
+   0: NOPATH  => Not valid trayectory
+   1: H3PLUS0 => 3 hits track
+   2: H3PLUS2 => 3+2 hits track
+   3: H4PLUS0 => 4 hits track
+   4: H4PLUS2 => 4+2 hits track
+   5: NO_DEF  => this is not defined
+   6: H3PLUS3 => 3+3 hits track
+   7: H4PLUS3 => 4+3 hits track
+   8: H4PLUS4 => 4+4 hits track
 */
+
 namespace cmsdt {
 
-  enum MP_QUALITY { NOPATH = 0, LOWQGHOST, LOWQ, HIGHQGHOST, HIGHQ, CLOWQ, LOWLOWQ, CHIGHQ, HIGHLOWQ, HIGHHIGHQ };
-
+  // enum MP_QUALITY { NOPATH = 0, LOWQGHOST, LOWQ, HIGHQGHOST, HIGHQ, CLOWQ, LOWLOWQ, CHIGHQ, HIGHLOWQ, HIGHHIGHQ };
+  enum MP_QUALITY { NOPATH = 0, H3PLUS0, H3PLUS2, H4PLUS0, H4PLUS2, NO_DEF, H3PLUS3, H4PLUS3, H4PLUS4};
+ 
   // Tipos de lateralidad de traza de partícula al pasar por una celda
   enum LATERAL_CASES { LEFT = 0, RIGHT, NONE };
 

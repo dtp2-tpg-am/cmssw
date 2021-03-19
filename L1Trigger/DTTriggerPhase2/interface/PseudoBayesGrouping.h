@@ -30,10 +30,11 @@ public:
 
 private:
   // Private methods
-  void LoadPattern(std::vector<std::vector<std::vector<int>>>::iterator itPattern);
+  // void LoadPattern(std::vector<std::vector<std::vector<int>>>::iterator itPattern);
+  void LoadPattern(TString pattern_file_name, int MB_number_input, int SL_shift);
   void FillDigisByLayer(const DTDigiCollection* digis);
   void CleanDigisByLayer();
-  void RecognisePatternsByLayerPairs();
+  void RecognisePatternsByLayerPairs(DTChamberId chamber_ID);
   void RecognisePatterns(std::vector<DTPrimitive> digisinLDown,
                          std::vector<DTPrimitive> digisinLUp,
                          DTPatternPtrs patterns);
@@ -59,6 +60,7 @@ private:
   int minSingleSLHitsMax_;
   int minSingleSLHitsMin_;
   int minUncorrelatedHits_;
+  uint maxPathsPerMatch_;
 
   //Classified digis
   std::vector<DTPrimitive> alldigis_;
@@ -79,42 +81,45 @@ private:
 
   //Pattern related info
   int nPatterns_;
-  DTPatternPtrs allPatterns_;
 
-  DTPatternPtrs L0L7Patterns_;
-  DTPatternPtrs L1L7Patterns_;
-  DTPatternPtrs L2L7Patterns_;
-  DTPatternPtrs L3L7Patterns_;
-  DTPatternPtrs L4L7Patterns_;
-  DTPatternPtrs L5L7Patterns_;
-  DTPatternPtrs L6L7Patterns_;
+  // One vector per MB and per shift of SL3 wrt SL1
+  // shift = (0, 1, 2) --> (left, nothing, right)
+  DTPatternPtrs allPatterns_[4][3];
 
-  DTPatternPtrs L0L6Patterns_;
-  DTPatternPtrs L1L6Patterns_;
-  DTPatternPtrs L2L6Patterns_;
-  DTPatternPtrs L3L6Patterns_;
-  DTPatternPtrs L4L6Patterns_;
-  DTPatternPtrs L5L6Patterns_;
+  DTPatternPtrs L0L7Patterns_[4][3];
+  DTPatternPtrs L1L7Patterns_[4][3];
+  DTPatternPtrs L2L7Patterns_[4][3];
+  DTPatternPtrs L3L7Patterns_[4][3];
+  DTPatternPtrs L4L7Patterns_[4][3];
+  DTPatternPtrs L5L7Patterns_[4][3];
+  DTPatternPtrs L6L7Patterns_[4][3];
 
-  DTPatternPtrs L0L5Patterns_;
-  DTPatternPtrs L1L5Patterns_;
-  DTPatternPtrs L2L5Patterns_;
-  DTPatternPtrs L3L5Patterns_;
-  DTPatternPtrs L4L5Patterns_;
+  DTPatternPtrs L0L6Patterns_[4][3];
+  DTPatternPtrs L1L6Patterns_[4][3];
+  DTPatternPtrs L2L6Patterns_[4][3];
+  DTPatternPtrs L3L6Patterns_[4][3];
+  DTPatternPtrs L4L6Patterns_[4][3];
+  DTPatternPtrs L5L6Patterns_[4][3];
 
-  DTPatternPtrs L0L4Patterns_;
-  DTPatternPtrs L1L4Patterns_;
-  DTPatternPtrs L2L4Patterns_;
-  DTPatternPtrs L3L4Patterns_;
+  DTPatternPtrs L0L5Patterns_[4][3];
+  DTPatternPtrs L1L5Patterns_[4][3];
+  DTPatternPtrs L2L5Patterns_[4][3];
+  DTPatternPtrs L3L5Patterns_[4][3];
+  DTPatternPtrs L4L5Patterns_[4][3];
 
-  DTPatternPtrs L0L3Patterns_;
-  DTPatternPtrs L1L3Patterns_;
-  DTPatternPtrs L2L3Patterns_;
+  DTPatternPtrs L0L4Patterns_[4][3];
+  DTPatternPtrs L1L4Patterns_[4][3];
+  DTPatternPtrs L2L4Patterns_[4][3];
+  DTPatternPtrs L3L4Patterns_[4][3];
 
-  DTPatternPtrs L0L2Patterns_;
-  DTPatternPtrs L1L2Patterns_;
+  DTPatternPtrs L0L3Patterns_[4][3];
+  DTPatternPtrs L1L3Patterns_[4][3];
+  DTPatternPtrs L2L3Patterns_[4][3];
 
-  DTPatternPtrs L0L1Patterns_;
+  DTPatternPtrs L0L2Patterns_[4][3];
+  DTPatternPtrs L1L2Patterns_[4][3];
+
+  DTPatternPtrs L0L1Patterns_[4][3];
 };
 
 #endif

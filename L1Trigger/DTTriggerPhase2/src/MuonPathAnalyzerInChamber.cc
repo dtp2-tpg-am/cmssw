@@ -14,9 +14,10 @@ MuonPathAnalyzerInChamber::MuonPathAnalyzerInChamber(const ParameterSet &pset, e
       chi2Th_(pset.getUntrackedParameter<double>("chi2Th")),
       shift_filename_(pset.getParameter<edm::FileInPath>("shift_filename")),
       bxTolerance_(30),
-      minQuality_(LOWQGHOST),
+      minQuality_(H3PLUS0),
       chiSquareThreshold_(50),
-      minHits4Fit_(pset.getUntrackedParameter<int>("minHits4Fit")) {
+      minHits4Fit_(pset.getUntrackedParameter<int>("minHits4Fit")),
+      splitPathPerSL_(pset.getUntrackedParameter<bool>("splitPathPerSL")){
   // Obtention of parameters
 
   if (debug_)
@@ -64,8 +65,51 @@ void MuonPathAnalyzerInChamber::run(edm::Event &iEvent,
     LogDebug("MuonPathAnalyzerInChamber") << "MuonPathAnalyzerInChamber: run";
 
   // fit per SL (need to allow for multiple outputs for a single mpath)
+  int nMuonPath_counter = 0;
   for (auto muonpath = muonpaths.begin(); muonpath != muonpaths.end(); ++muonpath) {
+
+    if (debug_) {
+      LogDebug("MuonPathAnalyzerInChamber")
+	<< "Full path: "
+	<< nMuonPath_counter << " , " << muonpath->get()->nprimitives() << " , " 
+	<< muonpath->get()->nprimitivesUp() << " , " << muonpath->get()->nprimitivesDown();
+    }
+    ++nMuonPath_counter;
+
+    // Define muonpaths for up/down SL only
+    MuonPathPtr muonpathUp_ptr = std::make_shared<MuonPath>();
+    muonpathUp_ptr->setNPrimitives(8);
+    muonpathUp_ptr->setNPrimitivesUp(muonpath->get()->nprimitivesUp());
+    muonpathUp_ptr->setNPrimitivesDown(0);
+
+    MuonPathPtr muonpathDown_ptr = std::make_shared<MuonPath>();
+    muonpathDown_ptr->setNPrimitives(8);
+    muonpathDown_ptr->setNPrimitivesUp(0);
+    muonpathDown_ptr->setNPrimitivesDown(muonpath->get()->nprimitivesDown());
+
+    for (int n = 0; n < muonpath->get()->nprimitives(); ++n){
+      DTPrimitivePtr prim = muonpath->get()->primitive(n);
+      // UP
+      if (prim->superLayerId() == 3){
+    	muonpathUp_ptr->setPrimitive(prim, n);
+      }
+      // DOWN
+      else if (prim->superLayerId() == 1){
+    	muonpathDown_ptr->setPrimitive(prim, n);
+      }
+      // NOT UP NOR DOWN
+      else continue;
+    }
+    
     analyze(*muonpath, outmuonpaths);
+
+    if (splitPathPerSL_){
+      if (muonpathUp_ptr->nprimitivesUp() > 1)
+	analyze(muonpathUp_ptr, outmuonpaths);
+
+      if (muonpathDown_ptr->nprimitivesDown() > 1)
+	analyze(muonpathDown_ptr, outmuonpaths);
+    }
   }
 }
 
@@ -101,6 +145,7 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
   if (debug_)
     LogDebug("MuonPathAnalyzerInChamber") << "DTp2:analyze \t\t\t\t\t yes it is analyzable " << mPath->isAnalyzable();
 
+
   // first of all, get info from primitives, so we can reduce the number of latereralities:
   buildLateralities(mPath);
   setWirePosAndTimeInMP(mPath);
@@ -131,9 +176,10 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
         break;
       NTotalHits--;
     }
+
     if (mPath->chiSquare() > chiSquareThreshold_)
       continue;
-
+    
     evaluateQuality(mPath);
 
     if (mPath->quality() < minQuality_)
@@ -531,6 +577,7 @@ void MuonPathAnalyzerInChamber::evaluateQuality(MuonPathPtr &mPath) {
   
   int validHits(0),nPrimsUp(0),nPrimsDown(0);
   for (int i=0; i<NUM_LAYERS_2SL; i++) {
+
     if (mPath->primitive(i)->isValidTime()) {
       validHits++;       
       if      ( i<4  ) nPrimsDown++; 
@@ -541,30 +588,44 @@ void MuonPathAnalyzerInChamber::evaluateQuality(MuonPathPtr &mPath) {
   mPath->setNPrimitivesUp(nPrimsUp);
   mPath->setNPrimitivesDown(nPrimsDown);
   
+
+  // NEW QUALITY ASSIGNMENT
+  // 4 + 4 --> H4PLUS4 --> Q = 8
   if (mPath->nprimitivesUp() >= 4 && mPath->nprimitivesDown() >= 4) {
-    mPath->setQuality(HIGHHIGHQ);
-  } 
+    mPath->setQuality(H4PLUS4);
+  }
+  // 4 + 3 --> H4PLUS3 --> Q = 7
   else if ((mPath->nprimitivesUp() == 4 && mPath->nprimitivesDown() == 3) ||
-             (mPath->nprimitivesUp() == 3 && mPath->nprimitivesDown() == 4)) {
-    mPath->setQuality(HIGHLOWQ);
-  } 
-  else if ((mPath->nprimitivesUp() == 4 && mPath->nprimitivesDown() <= 2 && mPath->nprimitivesDown() > 0) ||
-             (mPath->nprimitivesUp() <= 2 && mPath->nprimitivesUp() > 0 && mPath->nprimitivesDown() == 4)) {
-    mPath->setQuality(CHIGHQ);
-  } 
-  else if ((mPath->nprimitivesUp() == 3 && mPath->nprimitivesDown() == 3)) {
-    mPath->setQuality(LOWLOWQ);
-  } 
-  else if ((mPath->nprimitivesUp() == 3 && mPath->nprimitivesDown() <= 2 && mPath->nprimitivesDown() > 0) ||
-             (mPath->nprimitivesUp() <= 2 && mPath->nprimitivesUp() > 0 && mPath->nprimitivesDown() == 3) ||
-             (mPath->nprimitivesUp() == 2 && mPath->nprimitivesDown() == 2)) {
-    mPath->setQuality(CLOWQ);
-  } 
-  else if (mPath->nprimitivesUp() >= 4 || mPath->nprimitivesDown() >= 4) {
-    mPath->setQuality(HIGHQ);
-  } 
-  else if (mPath->nprimitivesUp() == 3 || mPath->nprimitivesDown() == 3) {
-    mPath->setQuality(LOWQ);
-  } 
-    
+	   (mPath->nprimitivesUp() == 3 && mPath->nprimitivesDown() == 4)) {
+    mPath->setQuality(H4PLUS3);
+  }
+  // 3 + 3 --> H3PLUS3 --> Q = 6
+  else if (mPath->nprimitivesUp() == 3 && mPath->nprimitivesDown() == 3) {
+    mPath->setQuality(H3PLUS3);
+  }
+  // 4 + 2 --> H4PLUS2 --> Q = 4
+  else if ((mPath->nprimitivesUp() == 4 && mPath->nprimitivesDown() == 2) ||
+	   (mPath->nprimitivesUp() == 2 && mPath->nprimitivesDown() == 4)) {
+    mPath->setQuality(H4PLUS2);
+  }
+  // (4 + 0) or (4 + 1) --> H4PLUS0 --> Q = 3
+  else if ((mPath->nprimitivesUp() == 4 && 
+	    (mPath->nprimitivesDown() == 1 || mPath->nprimitivesDown() == 0)) ||
+	   ((mPath->nprimitivesUp() == 1 || mPath->nprimitivesUp() == 0) &&
+	    mPath->nprimitivesDown() == 4)){
+    mPath->setQuality(H4PLUS0);
+  }
+  // 3 + 2 --> H3PLUS2 --> Q = 2
+  else if ((mPath->nprimitivesUp() == 3 && mPath->nprimitivesDown() == 2) ||
+	   (mPath->nprimitivesUp() == 2 && mPath->nprimitivesDown() == 3)){
+    mPath->setQuality(H3PLUS2);
+  }
+  // (3 + 0) or (3 + 1) --> H3PLUS0 --> Q = 1
+  else if ((mPath->nprimitivesUp() == 3 && 
+	    (mPath->nprimitivesDown() == 1 || mPath->nprimitivesDown() == 0)) ||
+	   ((mPath->nprimitivesUp() == 1 || mPath->nprimitivesUp() == 0) &&
+	    mPath->nprimitivesDown() == 3)){
+    mPath->setQuality(H3PLUS0);
+  }
+
 }

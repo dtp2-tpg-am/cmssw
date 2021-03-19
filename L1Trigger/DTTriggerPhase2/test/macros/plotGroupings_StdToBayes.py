@@ -8,47 +8,71 @@ tags = {"shared25": "shared 25% hits", "shared50": "shared 50% hits", "shared75"
 
 plots=[]
 titles={}  
+
+# Load histograms
 for st in ["MB1","MB2","MB3","MB4"]:
-    for var in ["Phi","PhiB","Chi2","Bx","Time"]:
-        for q in ["q1","q3","q5","q8"]:
-            plots.append("h%sRes_%s_%s" %(var,st,q))
-            titlename = '; %s^{std}-%s^{bay};' %(var,var)
-            if "PhiB" in var: 
-                titlename = titlename.replace('PhiB','#phi_{B}')
-                titlename = titlename.replace('};','} (mrad);')
-            elif "Phi" in var:
-                titlename = titlename.replace('Phi','#phi')    
-                titlename = titlename.replace('} ;','} (mrad) ;')            
-            elif "Chi2" in var:
-                titlename = titlename.replace('Chi2','#chi^2')                
+    for wh in ["Wh-2", "Wh-1", "Wh0", "Wh1", "Wh2"]:
+        for var in ["Phi","PhiB","Chi2","Bx","Time"]:
+            for q in ["q1","q3","q5","q8"]:
+
+                plots.append("h%sRes_%s_%s_%s" %(var, st, wh, q))
+                titlename = '; %s^{std}-%s^{bay};' %(var,var)
+                if "PhiB" in var: 
+                    titlename = titlename.replace('PhiB','#phi_{B}')
+                    titlename = titlename.replace('};','} (mrad);')
+                elif "Phi" in var:
+                    titlename = titlename.replace('Phi','#phi')    
+                    titlename = titlename.replace('} ;','} (mrad) ;')            
+                elif "Chi2" in var:
+                    titlename = titlename.replace('Chi2','#chi^2')                
+                titles["h%sRes_%s_%s_%s" %(var, st, wh, q)] = titlename
+
                 
-            titles["h%sRes_%s_%s" %(var,st,q)] = titlename
-    plots.append("hMatchingEff_%s" %(st))
-    titles["hMatchingEff_%s" %(st)] = " ; muon quality ; Efficiency = N_{bayes}/N_{std}"  
+                # Histograms inclusive in wheel number: do them just once
+                if wh == "Wh-2":
+                    plots.append("h%sRes_%s_%s" %(var, st, q))
+                    titlename = '; %s^{std}-%s^{bay};' %(var,var)
+                    if "PhiB" in var: 
+                        titlename = titlename.replace('PhiB','#phi_{B}')
+                        titlename = titlename.replace('};','} (mrad);')
+                    elif "Phi" in var:
+                        titlename = titlename.replace('Phi','#phi')    
+                        titlename = titlename.replace('} ;','} (mrad) ;')            
+                    elif "Chi2" in var:
+                        titlename = titlename.replace('Chi2','#chi^2')                
+                    titles["h%sRes_%s_%s" %(var, st, q)] = titlename
+
+        plots.append("hMatchingEff_%s_%s" %(st, wh))
+        titles["hMatchingEff_%s_%s" %(st, wh)] = " ; muon quality ; Efficiency = N_{bayes}/N_{std}"  
+
+        # Eff histogram inclusive in wheel number: do it just once
+        if wh == "Wh-2":
+            plots.append("hMatchingEff_%s" %(st))
+            titles["hMatchingEff_%s" %(st)] = " ; muon quality ; Efficiency = N_{bayes}/N_{std}"  
 
 
-outpath = "/afs/cern.ch/user/f/folguera/www/private/L1TPhase2/DTTP/201124_Groupings/"
+outpath = "/afs/cern.ch/user/n/ntrevisa/work/DT/CMSSW_11_2_0_pre2/src/Groupings/"
 if not os.path.exists(outpath):
     os.mkdir(outpath)
-    print "cp ~folguera/public/utils/index.php %s/" %outpath
-    os.system("cp ~folguera/public/utils/index.php %s/" %outpath)
-os.system("cp EventDumpList.log %s/" %outpath)
+    print "cp /afs/cern.ch/user/n/ntrevisa/public/utils/index.php %s/" %outpath
+    os.system("cp /afs/cern.ch/user/n/ntrevisa/public/utils/index.php %s/" %outpath)
+os.system("cp EventDumpList_StdToBayes.log %s/" %outpath)
 
 outpath = outpath + "StdToBayes/"
 if not os.path.exists(outpath):
     os.mkdir(outpath)
-    print "cp ~folguera/public/utils/index.php %s/" %outpath
-    os.system("cp ~folguera/public/utils/index.php %s/" %outpath)
+    print "cp /afs/cern.ch/user/n/ntrevisa/public/utils/index.php %s/" %outpath
+    os.system("cp /afs/cern.ch/user/n/ntrevisa/public/utils/index.php %s/" %outpath)
 
 
-outFile = ROOT.TFile("GroupingComparison_StdToBayes_Nov24.root","RECREATE")
+outFile = ROOT.TFile("GroupingComparison_StdToBayes.root","RECREATE")
 outFile.cd()
 
 ROOT.gROOT.ProcessLine('.L PlotTemplate.C+')
 ROOT.gROOT.SetBatch(True)
 ROOT.gStyle.SetOptStat(0)
 
-with open('GroupingComparison_StdToBayes_Nov24.pickle', 'rb') as handle:
+with open('GroupingComparison_StdToBayes.pickle', 'rb') as handle:
     b = pickle.load(handle)
 
 #leg = ROOT.TLegend(0.6,0.6,0.85,0.26);
@@ -57,6 +81,7 @@ leg.SetTextSize(0.03);
 
 for s in ss:        
     for plot in plots:
+        print("s = {}, plot = {}".format(s, plot))
         b[s][plot].SetTitle(titles[plot])
         b[s][plot].Write()
         b[s][plot].SetLineColor(samples[s])
@@ -95,8 +120,6 @@ for plot in plots:
     leg.Draw("same")
     
     ROOT.SaveCanvas(canvas, outpath + plot)
-
-
 
 outFile.Close()
 
