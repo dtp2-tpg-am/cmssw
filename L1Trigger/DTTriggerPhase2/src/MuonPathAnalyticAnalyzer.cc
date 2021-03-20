@@ -354,14 +354,15 @@ void MuonPathAnalyticAnalyzer::segment_fitter(DTSuperLayerId MuonPathSLId, int w
       
       
       DTLayerId SL2_layer2Id(MuonPathSLId,2);
-      double z_shift=shiftthetainfo_[SL2_layer2Id.rawId()];     
-      double jm_y = hasPosRF(MuonPathSLId.wheel(), MuonPathSLId.sector()) ? z_shift-pos_f : z_shift+pos_f;
+      double z_shift=shiftthetainfo_[SL2_layer2Id.rawId()];
+      double the_position_of_the_TP=double(pos)/(10*pow(2,INCREASED_RES_POS));
+      double jm_y = hasPosRF(MuonPathSLId.wheel(), MuonPathSLId.sector()) ? z_shift-the_position_of_the_TP : z_shift+the_position_of_the_TP;
       if(cmssw_for_global_){
 	  LocalPoint wire1_in_layer(dtGeo_->layer(SL2_layer2Id)->specificTopology().wirePosition(1),0,-0.65);
 	  GlobalPoint wire1_in_global=dtGeo_->layer(SL2_layer2Id)->toGlobal(wire1_in_layer);
 	  LocalPoint wire1_in_sl=dtGeo_->superLayer(MuonPathSLId)->toLocal(wire1_in_global);
 	  double x_shift=wire1_in_sl.x();
-	  jm_y=(dtGeo_->superLayer(MuonPathSLId)->toGlobal(LocalPoint(double(pos)/(10*pow(2,INCREASED_RES_POS))+x_shift ,0.,0))).z();
+	  jm_y=(dtGeo_->superLayer(MuonPathSLId)->toGlobal(LocalPoint(the_position_of_the_TP+x_shift ,0.,0))).z();
       }
       phi=jm_y;
       phiB=slope_f;
