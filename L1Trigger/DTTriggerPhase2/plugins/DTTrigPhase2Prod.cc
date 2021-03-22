@@ -33,6 +33,7 @@
 #include "L1Trigger/DTTriggerPhase2/interface/MPFilter.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MPQualityEnhancerFilter.h"
 #include "L1Trigger/DTTriggerPhase2/interface/MPRedundantFilter.h"
+#include "L1Trigger/DTTriggerPhase2/interface/MPCleanHitsFilter.h"
 #include "L1Trigger/DTTriggerPhase2/interface/GlobalCoordsObtainer.h"
 
 #include "DataFormats/MuonDetId/interface/DTChamberId.h"
@@ -131,6 +132,7 @@ private:
   std::unique_ptr<MuonPathAnalyzer> mpathanalyzer_;
   std::unique_ptr<MPFilter> mpathqualityenhancer_;
   std::unique_ptr<MPFilter> mpathredundantfilter_;
+  std::unique_ptr<MPFilter> mpathhitsfilter_;
   std::unique_ptr<MuonPathAssociator> mpathassociator_;
   std::shared_ptr<GlobalCoordsObtainer> globalcoordsobtainer_;
 
@@ -218,6 +220,7 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset)
 
   mpathqualityenhancer_ = std::make_unique<MPQualityEnhancerFilter>(pset);
   mpathredundantfilter_ = std::make_unique<MPRedundantFilter>(pset);
+  mpathhitsfilter_ = std::make_unique<MPCleanHitsFilter>(pset);
   mpathassociator_ = std::make_unique<MuonPathAssociator>(pset, consumesColl, globalcoordsobtainer_);
   rpc_integrator_ = std::make_unique<RPCIntegrator>(pset, consumesColl);
 
@@ -239,6 +242,7 @@ void DTTrigPhase2Prod::beginRun(edm::Run const& iRun, const edm::EventSetup& iEv
   mpathanalyzer_->initialise(iEventSetup);         // Analyzer object initialisation
   mpathqualityenhancer_->initialise(iEventSetup);  // Filter object initialisation
   mpathredundantfilter_->initialise(iEventSetup);  // Filter object initialisation
+  mpathhitsfilter_->initialise(iEventSetup);
   mpathassociator_->initialise(iEventSetup);       // Associator object initialisation
 
   edm::ESHandle<DTGeometry> geom;
@@ -260,6 +264,9 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   ////////////////////////////////
   // GROUPING CODE:
   ////////////////////////////////
+
+  cout << "Grouping" << endl;
+
   DTDigiMap digiMap;
   DTDigiCollection::DigiRangeIterator detUnitIt;
   for (const auto& detUnitIt : *dtdigis) {
@@ -285,6 +292,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     if (dmit == digiMap.end())
       continue;
 
+    cout << "running grouping..." << endl;
     if (activateBuffer_) {  // Use buffering (per chamber) or not
       // Import digis from the station
       std::vector<std::pair<DTLayerId, DTDigi>> tmpvec;
@@ -316,6 +324,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 
       // Process each supercell & collect the resulting muonpaths (as the muonpaths std::vector is only enlarged each time
       // the groupings access it, it's not needed to "collect" the final products).
+
       while (!superCells.empty()) {
         grouping_obj_->run(iEvent, iEventSetup, *(superCells.back()), muonpaths);
         superCells.pop_back();
@@ -325,6 +334,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     }
   }
   digiMap.clear();
+  cout << "...grouping run" << endl;
 
   if (dump_) {
     for (unsigned int i = 0; i < muonpaths.size(); i++) {
@@ -345,6 +355,12 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   if (algo_ == Standard) {
     mpathredundantfilter_->run(iEvent, iEventSetup, muonpaths, filteredmuonpaths);
   }
+  else {
+    cout << "filtering muon paths" << endl;
+    mpathhitsfilter_->run(iEvent, iEventSetup, muonpaths, filteredmuonpaths);
+  }
+
+  cout << "muon paths filtered" << endl;
 
   if (dump_) {
     for (unsigned int i = 0; i < filteredmuonpaths.size(); i++) {
@@ -361,6 +377,9 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   ///////////////////////////////////////////
   /// FITTING SECTION;
   ///////////////////////////////////////////
+
+  cout << "Fitting" << endl;  
+
   if (debug_)
     LogDebug("DTTrigPhase2Prod") << "MUON PATHS found: " << muonpaths.size() << " (" << filteredmuonpaths.size()
                                  << ") in event " << iEvent.id().event();
@@ -376,7 +395,10 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     // implementation for advanced (2SL) grouping, no filter required..
     if (debug_)
       LogDebug("DTTrigPhase2Prod") << "Fitting 2SL at once ";
-    mpathanalyzer_->run(iEvent, iEventSetup, muonpaths, outmpaths);
+    //mpathanalyzer_->run(iEvent, iEventSetup, muonpaths, outmpaths);
+    cout << "Running fit" << endl;
+    mpathanalyzer_->run(iEvent, iEventSetup, filteredmuonpaths, outmpaths);
+    cout << "Done fitting" << endl;
   }
 
   if (dump_) {
@@ -399,6 +421,9 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   /////////////////////////////////////
   //  FILTER SECTIONS:
   ////////////////////////////////////
+
+  cout << "Filtering" << endl;
+
   if (debug_)
     LogDebug("DTTrigPhase2Prod") << "declaring new vector for filtered" << std::endl;
 
@@ -427,11 +452,52 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   /////////////////////////////////////
   //// CORRELATION:
   /////////////////////////////////////
+
+  cout << "Correlating" << endl;
+
   std::vector<metaPrimitive> correlatedMetaPrimitives;
   if (algo_ == Standard)
     mpathassociator_->run(iEvent, iEventSetup, dtdigis, filteredMetaPrimitives, correlatedMetaPrimitives);
   else {
     for (const auto& muonpath : outmpaths) {
+      cout << "emplacing back correlated meta primitives for bayes grouping algo" << endl;
+      cout << "Muon path:" << endl;
+      cout << "Raw ID = " << muonpath->rawId() << endl;
+      cout << "BX = " << (double)muonpath->bxTimeValue() << endl;
+      cout << "Horiz pos = " << muonpath->horizPos() << endl;
+      cout << "Tan phi = " << muonpath->tanPhi() << endl;
+      cout << "Phi = " << muonpath->phi() << endl;
+      cout << "Phi B = " << muonpath->phiB() << endl;
+      cout << "Chi2 = " << muonpath->chiSquare() << endl;
+      cout << "Quality = " << (int)muonpath->quality() << endl;
+      
+      cout << "now the primitives:" << endl;
+      cout << "Primitive  = " << muonpath->primitive(0)->channelId() << endl;
+      cout << "Primitive  = " << muonpath->primitive(0)->tdcTimeStamp() << endl;
+      cout << "Primitive  = " << muonpath->primitive(0)->laterality() << endl;
+      cout << "Primitive  = " << muonpath->primitive(1)->channelId() << endl;
+      cout << "Primitive  = " << muonpath->primitive(1)->tdcTimeStamp() << endl;
+      cout << "Primitive  = " << muonpath->primitive(1)->laterality() << endl;
+      cout << "Primitive  = " << muonpath->primitive(2)->channelId() << endl;
+      cout << "Primitive  = " << muonpath->primitive(2)->tdcTimeStamp() << endl;
+      cout << "Primitive  = " << muonpath->primitive(2)->laterality() << endl;
+      cout << "Primitive  = " << muonpath->primitive(3)->channelId() << endl;
+      cout << "Primitive  = " << muonpath->primitive(3)->tdcTimeStamp() << endl;
+      cout << "Primitive  = " << muonpath->primitive(3)->laterality() << endl;
+
+      cout << "Primitive  = " << muonpath->primitive(4)->channelId() << endl;
+      cout << "Primitive  = " << muonpath->primitive(4)->tdcTimeStamp() << endl;
+      cout << "Primitive  = " << muonpath->primitive(4)->laterality() << endl;
+      cout << "Primitive  = " << muonpath->primitive(5)->channelId() << endl;
+      cout << "Primitive  = " << muonpath->primitive(5)->tdcTimeStamp() << endl;
+      cout << "Primitive  = " << muonpath->primitive(5)->laterality() << endl;
+      cout << "Primitive  = " << muonpath->primitive(6)->channelId() << endl;
+      cout << "Primitive  = " << muonpath->primitive(6)->tdcTimeStamp() << endl;
+      cout << "Primitive  = " << muonpath->primitive(6)->laterality() << endl;
+      cout << "Primitive  = " << muonpath->primitive(7)->channelId() << endl;
+      cout << "Primitive  = " << muonpath->primitive(7)->tdcTimeStamp() << endl;
+      cout << "Primitive  = " << muonpath->primitive(7)->laterality() << endl;
+
       correlatedMetaPrimitives.emplace_back(muonpath->rawId(),
                                             (double)muonpath->bxTimeValue(),
                                             muonpath->horizPos(),
@@ -464,6 +530,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
                                             muonpath->primitive(7)->channelId(),
                                             muonpath->primitive(7)->tdcTimeStamp(),
                                             muonpath->primitive(7)->laterality());
+      cout << "emplaced back MP" << endl;
     }
   }
   filteredMetaPrimitives.clear();
@@ -482,6 +549,8 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       printmPC(ss.str(), correlatedMetaPrimitives.at(i));
     }
   }
+
+  cout << "correlation done" << endl;
 
   double shift_back = 0;
   if (scenario_ == MC)  //scope for MC
@@ -533,6 +602,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 
     if (debug_)
       LogDebug("DTTrigPhase2Prod") << "pushing back phase-2 dataformat carlo-federica dataformat";
+    cout << "pushing back phase-2 dataformat carlo-federica dataformat" << endl;
 
 
     if(slId.superLayer()!=2){
@@ -597,6 +667,7 @@ void DTTrigPhase2Prod::endRun(edm::Run const& iRun, const edm::EventSetup& iEven
   mpathanalyzer_->finish();
   mpathqualityenhancer_->finish();
   mpathredundantfilter_->finish();
+  mpathhitsfilter_->finish();
   mpathassociator_->finish();
   rpc_integrator_->finish();
 };

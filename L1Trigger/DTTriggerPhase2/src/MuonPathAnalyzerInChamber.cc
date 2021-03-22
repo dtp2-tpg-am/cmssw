@@ -64,8 +64,51 @@ void MuonPathAnalyzerInChamber::run(edm::Event &iEvent,
     LogDebug("MuonPathAnalyzerInChamber") << "MuonPathAnalyzerInChamber: run";
 
   // fit per SL (need to allow for multiple outputs for a single mpath)
+  int nMuonPath_counter = 0;
   for (auto muonpath = muonpaths.begin(); muonpath != muonpaths.end(); ++muonpath) {
+    
+    if (debug_) {
+      LogDebug("MuonPathAnalyzerInChamber")
+	<< "Full path: "
+	<< nMuonPath_counter << " , " << muonpath->get()->nprimitives() << " , " 
+	<< muonpath->get()->nprimitivesUp() << " , " << muonpath->get()->nprimitivesDown();
+    }
+    ++nMuonPath_counter;
+
+    // Define muonpaths for up/down SL only
+    MuonPathPtr muonpathUp_ptr = std::make_shared<MuonPath>();
+    muonpathUp_ptr->setNPrimitives(8);
+    muonpathUp_ptr->setNPrimitivesUp(muonpath->get()->nprimitivesUp());
+    muonpathUp_ptr->setNPrimitivesDown(0);
+
+    MuonPathPtr muonpathDown_ptr = std::make_shared<MuonPath>();
+    muonpathDown_ptr->setNPrimitives(8);
+    muonpathDown_ptr->setNPrimitivesUp(0);
+    muonpathDown_ptr->setNPrimitivesDown(muonpath->get()->nprimitivesDown());
+
+    for (int n = 0; n < muonpath->get()->nprimitives(); ++n){
+      DTPrimitivePtr prim = muonpath->get()->primitive(n);
+      // UP
+      if (prim->superLayerId() == 3){
+	muonpathUp_ptr->setPrimitive(prim, n);
+      }
+      // DOWN
+      else if (prim->superLayerId() == 1){
+	muonpathDown_ptr->setPrimitive(prim, n);
+      }
+      // NOT UP NOR DOWN
+      else continue;
+    }
+    
     analyze(*muonpath, outmuonpaths);
+
+    if (splitPathPerSL_){
+      if (muonpathUp_ptr->nprimitivesUp() > 1)
+	analyze(muonpathUp_ptr, outmuonpaths);
+      
+      if (muonpathDown_ptr->nprimitivesDown() > 1)
+	analyze(muonpathDown_ptr, outmuonpaths);
+    }
   }
 }
 

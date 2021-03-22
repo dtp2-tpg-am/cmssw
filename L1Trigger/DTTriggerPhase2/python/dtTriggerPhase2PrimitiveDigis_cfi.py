@@ -36,6 +36,7 @@ dtTriggerPhase2PrimitiveDigis = cms.EDProducer("DTTrigPhase2Prod",
                                                algo = cms.int32(0), # 0 = STD gr., 2 = Hough transform, 1 = PseudoBayes Approach
 
                                                minHits4Fit = cms.untracked.int32(4),
+                                               splitPathPerSL = cms.untracked.bool(True),
 
                                                #debugging
                                                debug = cms.untracked.bool(False),
