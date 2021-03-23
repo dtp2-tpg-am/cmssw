@@ -70,7 +70,7 @@ void PseudoBayesGrouping::initialise(const edm::EventSetup& iEventSetup) {
   // delete f;
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  cout << "Initializing patterns" << endl;
+  //  cout << "Initializing patterns" << endl;
 
   // Currently hard-coded. To be fixed
   TString patterns_folder = "L1Trigger/DTTriggerPhase2/data/";
@@ -93,7 +93,7 @@ void PseudoBayesGrouping::initialise(const edm::EventSetup& iEventSetup) {
   allMatches_ = std::make_unique<CandidateGroupPtrs>();
   finalMatches_ = std::make_unique<CandidateGroupPtrs>();
 
-  cout << "Patterns loaded" << endl;
+  // cout << "Patterns loaded" << endl;
 
 }
 
@@ -236,16 +236,16 @@ void PseudoBayesGrouping::run(Event& iEvent,
                               const DTDigiCollection& digis,
                               MuonPathPtrs& mpaths) {
 
-  cout << "Running bayesian gruoping" << endl;
+  // cout << "Running bayesian gruoping" << endl;
 
   //Takes dt digis collection and does the grouping for correlated hits, it is saved in a vector of up to 8 (or 4) correlated hits
   if (debug_)
     LogDebug("PseudoBayesGrouping") << "PseudoBayesGrouping::run";
   //Do initial cleaning
-  cout << "Clean digis by layer" << endl;
+  //  cout << "Clean digis by layer" << endl;
   CleanDigisByLayer();
   //Sort digis by layer
-  cout << "Fill digis by layer" << endl;
+  // cout << "Fill digis by layer" << endl;
   FillDigisByLayer(&digis);
 
   //Sarch for patterns
@@ -338,9 +338,6 @@ void PseudoBayesGrouping::FillMuonPaths(MuonPathPtrs& mpaths) {
 	for (int j = 0; j < n_prim; j++){
 	  DTPrimitivePtrs tmpPrimitive;
 	  for (int i = 0; i < NUM_LAYERS_2SL; i++){
-	    // DTPrimitivePtr tmpPrim = std::make_shared<DTPrimitive>();
-	    // tmpPrim = ptrPrimitive_vector.at(j).at(i);
-	    // tmpPrimitive.push_back(tmpPrim);
 	    tmpPrimitive.push_back(ptrPrimitive_vector.at(j).at(i));
 	  }
 	  // Now save the hit in the new path
@@ -387,15 +384,15 @@ void PseudoBayesGrouping::FillMuonPaths(MuonPathPtrs& mpaths) {
 
     for (int n_path = 0; n_path < n_paths; ++n_path){
       
-      cout << "" << endl;
-      cout << "Primitives:"  << endl;
-      	for (int i = 0; i <= 7; i++) {
-      	  cout << "Number = " << i;
-      	  cout << "Channel = "    << ptrPrimitive_vector.at(n_path).at(i)->channelId();
-      	  cout << "TDC = "        << ptrPrimitive_vector.at(n_path).at(i)->tdcTimeStamp();
-      	  cout << "Laterality = " << ptrPrimitive_vector.at(n_path).at(i)->laterality() << endl;
-      	  cout << "" << endl;
-      	}
+      // cout << "" << endl;
+      // cout << "Primitives:"  << endl;
+      // 	for (int i = 0; i <= 7; i++) {
+      // 	  cout << "Number = " << i;
+      // 	  cout << "Channel = "    << ptrPrimitive_vector.at(n_path).at(i)->channelId();
+      // 	  cout << "TDC = "        << ptrPrimitive_vector.at(n_path).at(i)->tdcTimeStamp();
+      // 	  cout << "Laterality = " << ptrPrimitive_vector.at(n_path).at(i)->laterality() << endl;
+      // 	  cout << "" << endl;
+      // 	}
 
       // //Now, if there are empty spaces in the vector fill them full of daylight
       // int ipow = 1;
@@ -421,7 +418,7 @@ void PseudoBayesGrouping::RecognisePatternsByLayerPairs(DTChamberId chamber_ID) 
   int wheel  = chamber_ID.wheel();
   int sector = chamber_ID.sector();
 
-  cout << "My inputs: wheel = " << wheel << ", station = " << MB << ", sector = " << sector << endl;
+  // cout << "My inputs: wheel = " << wheel << ", station = " << MB << ", sector = " << sector << endl;
 
   // shift of SL3 wrt SL1 
   int shift = -1;
@@ -523,7 +520,7 @@ void PseudoBayesGrouping::RecognisePatternsByLayerPairs(DTChamberId chamber_ID) 
   RecognisePatterns(digisinL5_, digisinL7_, L5L7Patterns_[MB][shift]);
   RecognisePatterns(digisinL6_, digisinL7_, L6L7Patterns_[MB][shift]);
 
-  cout<<"Patterns recognized" << endl;
+  //  cout<<"Patterns recognized" << endl;
 
 }
 
