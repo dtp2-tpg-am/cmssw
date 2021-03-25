@@ -25,15 +25,13 @@
 // or NONE
 
 /* Quality of the trayectories:
-   NOPATH => Not valid trayectory
-   LOWQGHOST => 3h (multiple lateralities)
-   LOWQ   => 3h
-   HIGHQGHOST => 4h (multiple lateralities)
-   HIGHQ  => 4h
-   CLOWQ  => 3h + 2h/1h
-   LOWLOWQ => 3h + 3h
-   CHIGHQ => 4h + 2h/1h
-   HIGHLOWQ => 4h + 3h
+   NOPATH    => Not valid trajectory
+   LOWQ      => 3h
+   CLOWQ     => 3h + 2h (confirmed)
+   HIGHQ     => 4h
+   CHIGHQ    => 4h + 2h (confirmed)
+   LOWLOWQ   => 3h + 3h
+   HIGHLOWQ  => 4h + 3h
    HIGHHIGHQ => 4h + 4h
 */
 namespace cmsdt {

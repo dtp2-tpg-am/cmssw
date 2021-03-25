@@ -28,7 +28,7 @@ MuonPath::MuonPath() {
 }
 
 MuonPath::MuonPath(DTPrimitivePtrs &ptrPrimitive, int nprimUp, int nprimDown) {
-  if (nprimUp > 0 && nprimDown > 0)
+  if (nprimUp > 0 || nprimDown > 0)
     nprimitives_ = NUM_LAYERS_2SL;  //Instead of nprimUp + nprimDown;
   else {
     nprimitives_ = NUM_LAYERS;
@@ -48,7 +48,7 @@ MuonPath::MuonPath(DTPrimitivePtrs &ptrPrimitive, int nprimUp, int nprimDown) {
 
   for (short i = 0; i < nprimitives_; i++) {
     lateralComb_[i] = LEFT;
-    prim_.push_back(std::make_shared<DTPrimitive>(ptrPrimitive[i]));
+    prim_.emplace_back(std::make_shared<DTPrimitive>(ptrPrimitive[i]));
 
     setXCoorCell(0, i);
     setDriftDistance(0, i);
@@ -59,7 +59,7 @@ MuonPath::MuonPath(DTPrimitivePtrs &ptrPrimitive, int nprimUp, int nprimDown) {
 }
 
 MuonPath::MuonPath(DTPrimitives &ptrPrimitive, int nprimUp, int nprimDown) {
-  if (nprimUp > 0 && nprimDown > 0)
+  if (nprimUp > 0 || nprimDown > 0)
     nprimitives_ = NUM_LAYERS_2SL;  //Instead of nprimUp + nprimDown;
   else {
     nprimitives_ = NUM_LAYERS;
@@ -105,7 +105,7 @@ MuonPath::MuonPath(MuonPathPtr &ptr) {
   setChiSquare(ptr->chiSquare());
 
   for (int i = 0; i < ptr->nprimitives(); i++) {
-    prim_.push_back(ptr->primitive(i));
+    prim_.emplace_back(ptr->primitive(i));
 
     setXCoorCell(ptr->xCoorCell(i), i);
     setDriftDistance(ptr->xDriftDistance(i), i);

@@ -78,6 +78,7 @@ private:
   float chiSquareThreshold_;
   short minHits4Fit_;
   int cellLayout_[NLayers];
+  bool splitPathPerSL_;
 };
 
 #endif

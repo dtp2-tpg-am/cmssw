@@ -60,4 +60,8 @@ private:
   bool debug_ = false;
 };
 
+/* typedef std::vector<DTPattern> DTPatterns; */
+/* typedef std::shared_ptr<DTPattern> DTPatternPtr; */
+/* typedef std::vector<DTPatternPtr> DTPatternPtrs; */
+
 #endif
