@@ -398,12 +398,17 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
     if (debug_)
       LogDebug("MuonPathAnalyzerInChamber") << "In fitPerLat " << lay << " xwire " << xwire[lay] << " zwire "
                                             << zwire[lay] << " tTDCvdrift " << tTDCvdrift[lay];
+    
     xhit[lay] = xwire[lay] + (-1 + 2 * laterality[lay]) * 1000 * tTDCvdrift[lay];
     if (debug_)
       LogDebug("MuonPathAnalyzerInChamber") << "In fitPerLat " << lay << " xhit " << xhit[lay];
   }
 
-  //Proceed with calculation of fit parameters
+  // Proceed with calculation of fit parameters
+  // z = wire position in z direction
+  // c = laterality
+  // b = always 1 
+  // scal ~ scalar product
   double cbscal = 0.0;
   double zbscal = 0.0;
   double czscal = 0.0;
@@ -419,13 +424,14 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
           << " For layer " << lay + 1 << " xwire[lay] " << xwire[lay] << " zwire " << zwire[lay] << " b " << b[lay];
     if (debug_)
       LogDebug("MuonPathAnalyzerInChamber") << " xhit[lat][lay] " << xhit[lay];
-    cbscal = (-1 + 2 * laterality[lay]) * b[lay] + cbscal;
-    zbscal = zwire[lay] * b[lay] + zbscal;  //it actually does not depend on laterality
-    czscal = (-1 + 2 * laterality[lay]) * zwire[lay] + czscal;
 
-    bbscal = b[lay] * b[lay] + bbscal;          //it actually does not depend on laterality
-    zzscal = zwire[lay] * zwire[lay] + zzscal;  //it actually does not depend on laterality
-    ccscal = (-1 + 2 * laterality[lay]) * (-1 + 2 * laterality[lay]) + ccscal;
+    cbscal = (-1 + 2 * laterality[lay]) * b[lay] + cbscal;     // difference in number of semicells between top hit and bottom hit
+    zbscal = zwire[lay] * b[lay] + zbscal;                     // sum of all zwires (it actually does not depend on laterality)
+    czscal = (-1 + 2 * laterality[lay]) * zwire[lay] + czscal; // sum of all (zwire*laterality)
+
+    bbscal = b[lay] * b[lay] + bbscal;                                         // number of layers involved (it actually does not depend on laterality)
+    zzscal = zwire[lay] * zwire[lay] + zzscal;                                 // sum of all (zwire*zwire)  (it actually does not depend on laterality)
+    ccscal = (-1 + 2 * laterality[lay]) * (-1 + 2 * laterality[lay]) + ccscal; // number of layers involved (it actually does not depend on laterality)
   }
 
   double cz = 0.0;
@@ -494,7 +500,7 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
         << recslope << " recpos " << recpos;
   }
 
-  //Get t*v and residuals per layer, and chi2 per laterality
+  // Get t*v and residuals per layer, and chi2 per laterality
   double rectdriftvdrift[NUM_LAYERS_2SL];
   double recres[NUM_LAYERS_2SL];
   double recchi2 = 0.0;
@@ -513,6 +519,14 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
     if (debug_)
       LogDebug("MuonPathAnalyzerInChamber") << rectdriftvdrift[lay];
     recres[lay] = xhit[lay] - zwire[lay] * recslope - b[lay] * recpos - (-1 + 2 * laterality[lay]) * rect0vdrift;
+
+    // cout << "xhit = " << xhit[lay]
+    // 	 << ", rect0vdrift = " << rect0vdrift 
+    // 	 << ", zwire = " << zwire[lay]
+    // 	 << ", recslope = " << recslope 
+    // 	 << ", recpos = " << recpos 
+    // 	 << endl;
+
     if ((present_layer[lay] == 1) && (rectdriftvdrift[lay] < -0.1)) {
       sign_tdriftvdrift = -1;
       if (-0.1 - rectdriftvdrift[lay] > maxDif) {
@@ -570,6 +584,7 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
           << mpath->chiSquare() << " rawId " << mpath->rawId();
   }
 }
+
 void MuonPathAnalyzerInChamber::evaluateQuality(MuonPathPtr &mPath) {
   mPath->setQuality(NOPATH);
 
