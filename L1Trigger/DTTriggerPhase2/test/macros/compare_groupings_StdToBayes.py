@@ -49,8 +49,8 @@ def IsMatched(muon1,muon2,sharedFrac=0.5):
 
     return False
 
-muoBayesHandle, muoBayesLabel = Handle("L1Phase2MuDTExtPhContainer"), ("dtTriggerPhase2BayesPrimitiveDigis","","L1DTTrigPhase2Prod")
-muoStdHandle, muoStdLabel = Handle("L1Phase2MuDTExtPhContainer"), ("dtTriggerPhase2StdPrimitiveDigis","","L1DTTrigPhase2Prod")
+muoBayesHandle, muoBayesLabel = Handle("L1Phase2MuDTPhContainer<L1Phase2MuDTExtPhDigi>"), ("dtTriggerPhase2BayesPrimitiveDigis" ,"", "L1DTTrigPhase2Prod")
+muoStdHandle,   muoStdLabel   = Handle("L1Phase2MuDTPhContainer<L1Phase2MuDTExtPhDigi>"), ("dtTriggerPhase2StdPrimitiveDigis",   "", "L1DTTrigPhase2Prod")
 genHandle, genLabel = Handle("vector<reco::GenParticle>"), "genParticles"
 
 

@@ -40,9 +40,10 @@
 #include "DataFormats/MuonDetId/interface/DTLayerId.h"
 #include "DataFormats/MuonDetId/interface/DTWireId.h"
 #include "DataFormats/DTDigi/interface/DTDigiCollection.h"
-#include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTExtPhContainer.h"
+//#include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTExtPhContainer.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhContainer.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTExtPhDigi.h"
+#include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhDigi.h"
 
 // DT trigger GeomUtils
 #include "DQM/DTMonitorModule/interface/DTTrigGeomUtils.h"
@@ -164,8 +165,8 @@ namespace {
 
 DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset)
     : qmap_({{9, 9}, {8, 8}, {7, 6}, {6, 7}, {5, 3}, {4, 5}, {3, 4}, {2, 2}, {1, 1}}) {
-  produces<L1Phase2MuDTPhContainer>();
-  // produces<L1Phase2MuDTExtPhContainer>();
+  produces<L1Phase2MuDTPhContainer<L1Phase2MuDTPhDigi>>();
+  produces<L1Phase2MuDTPhContainer<L1Phase2MuDTExtPhDigi>>();
 
   debug_ = pset.getUntrackedParameter<bool>("debug");
   dump_ = pset.getUntrackedParameter<bool>("dump");
@@ -686,21 +687,9 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   }
 
   /// STORING RESULTs
-  // std::unique_ptr<MotherGrouping> grouping_obj_;
-  // grouping_obj_ = std::make_unique<PseudoBayesGrouping>(pset.getParameter<edm::ParameterSet>("PseudoBayesPattern"), consumesColl);
-  std::vector<L1Phase2MuDTPhDigi> outP2Ph;
-  // if (df_extended_ == true){
-  //   cout << "Extended!" << endl;
-  //   //outP2Ph = new vector<L1Phase2MuDTExtPhDigi> = ();
-  //   outP2Ph = std::vector<L1Phase2MuDTExtPhDigi>;
-  // }
-  // else{
-  //   //outP2Ph = new vector<L1Phase2MuDTPhDigi> = ();
-  //   outP2Ph = std::vector<L1Phase2MuDTPhDigi>;
-  // }
-  // // vector<L1Phase2MuDTExtPhDigi> outP2Ph;
-
-
+  vector<L1Phase2MuDTPhDigi> outP2Ph;
+  vector<L1Phase2MuDTExtPhDigi> outExtP2Ph;
+  
   // Assigning index value
   assignIndex(correlatedMetaPrimitives);
   for (const auto& metaPrimitiveIt : correlatedMetaPrimitives) {
@@ -743,7 +732,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
       int pathLat[8] = {metaPrimitiveIt.lat1,metaPrimitiveIt.lat2,metaPrimitiveIt.lat3,metaPrimitiveIt.lat4,
 			metaPrimitiveIt.lat5,metaPrimitiveIt.lat6,metaPrimitiveIt.lat7,metaPrimitiveIt.lat8};
     
-      outP2Ph.push_back(L1Phase2MuDTExtPhDigi(
+      outExtP2Ph.emplace_back(L1Phase2MuDTExtPhDigi(
 					      (int)round(metaPrimitiveIt.t0 / 25.) - shift_back,  // ubx (m_bx) //bx en la orbita
 					      chId.wheel(),    // uwh (m_wheel)     // FIXME: It is not clear who provides this?
 					      sectorTP,        // usc (m_sector)    // FIXME: It is not clear who provides this?
@@ -757,6 +746,8 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 					      (int)round(metaPrimitiveIt.chi2 * 1000000),        // uchi2 (m_chi2Segment)
 					      (int)round(metaPrimitiveIt.x * 1000),              // ux (m_xLocal)
 					      (int)round(metaPrimitiveIt.tanPhi * 1000),         // utan (m_tanPsi)
+					      (int)round(metaPrimitiveIt.phi * 65536. / 0.8),    // uphi (_phiAngleCMSSW)     <-- in theory. For the moment, same as phi
+					      (int)round(metaPrimitiveIt.phiB * 2048. / 1.4),    // uphib (m_phiBendingCMSSW) <-- in theory. For the moment, same as phiB
 					      metaPrimitiveIt.rpcFlag,                           // urpc (m_rpcFlag)
 					      pathWireId,
 					      pathTDC,
@@ -766,7 +757,7 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
     }
     else{
     
-      outP2Ph.push_back(L1Phase2MuDTPhDigi(
+      outP2Ph.emplace_back(L1Phase2MuDTPhDigi(
 					   (int)round(metaPrimitiveIt.t0 / (float)LHC_CLK_FREQ) - shift_back,
 					   chId.wheel(),                                                // uwh (m_wheel)
 					   sectorTP,                                                    // usc (m_sector)
@@ -792,6 +783,21 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   //    }
   //  }
 
+  if (df_extended_) {
+    auto resultP2Ph = std::make_unique<L1Phase2MuDTPhContainer<L1Phase2MuDTExtPhDigi>>();
+    resultP2Ph->setContainer(outExtP2Ph);
+    iEvent.put(std::move(resultP2Ph));
+  }
+  else {
+    auto resultP2Ph = std::make_unique<L1Phase2MuDTPhContainer<L1Phase2MuDTPhDigi>>();
+    resultP2Ph->setContainer(outP2Ph);
+    iEvent.put(std::move(resultP2Ph));
+  }
+  outExtP2Ph.clear();
+  outExtP2Ph.erase(outExtP2Ph.begin(), outExtP2Ph.end());
+  outP2Ph.clear();
+  outP2Ph.erase(outP2Ph.begin(), outP2Ph.end());
+
   // if (df_extended_ == true){
   //   auto resultP2Ph = std::make_unique<L1Phase2MuDTExtPhContainer>();
   //   resultP2Ph->setContainer(outP2Ph);
@@ -802,11 +808,11 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
   // else{
   
   // auto resultP2Ph = std::make_unique<L1Phase2MuDTExtPhContainer>();
-  auto resultP2Ph = std::make_unique<L1Phase2MuDTPhContainer>();
-  resultP2Ph->setContainer(outP2Ph);
-  iEvent.put(std::move(resultP2Ph));
-  outP2Ph.clear();
-  outP2Ph.erase(outP2Ph.begin(), outP2Ph.end());
+  // auto resultP2Ph = std::make_unique<L1Phase2MuDTPhContainer>();
+  // resultP2Ph->setContainer(outP2Ph);
+  // iEvent.put(std::move(resultP2Ph));
+  // outP2Ph.clear();
+  // outP2Ph.erase(outP2Ph.begin(), outP2Ph.end());
   // }
 }
 
