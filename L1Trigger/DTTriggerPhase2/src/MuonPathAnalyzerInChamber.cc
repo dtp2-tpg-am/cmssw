@@ -106,16 +106,16 @@ void MuonPathAnalyzerInChamber::run(edm::Event &iEvent,
       else continue;
     }
 
-    cout << "Fitting " << endl;
+    // cout << "Fitting " << endl;
 
     analyze(*muonpath, outmuonpaths);
 
-    cout << "Full path fitted" << endl; 
-
+    // cout << "Full path fitted" << endl; 
+    
     if (splitPathPerSL_){
       // Analyze only if original muonpath was correlated or confirmed.
       // Otherwise, it's just repeating the original muonpath fit
-
+      
       if (muonpathUp_ptr->nprimitivesUp() > 1 && muonpath->get()->nprimitivesDown() > 0)
 	analyze(muonpathUp_ptr, outmuonpaths);
 
@@ -168,7 +168,7 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
     LogDebug("MuonPathAnalyzerInChamber") << "DTp2:analyze \t\t\t\t\t yes it is analyzable " << mPath->isAnalyzable();
 
 
-  cout << "Building lateralities and setting wires positions" << endl;
+  // cout << "Building lateralities and setting wires positions" << endl;
 
   // first of all, get info from primitives, so we can reduce the number of latereralities:
   buildLateralities(mPath);
@@ -188,26 +188,38 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
       if (xwire[ii] == 0) {
         present_layer[ii] = 0;
         NTotalHits--;
-      } else {
+      } 
+      else {
         present_layer[ii] = 1;
       }
     }
-
+    
+    // why do we repeat the fit reducing NTotalHits? What changes?
     while (NTotalHits >= minHits4Fit_) {
+      cout << "Total hits: " << NTotalHits << endl;
       mPath->setChiSquare(0);
       calculateFitParameters(mPath, lateralities_[i], present_layer);
       if (mPath->chiSquare() != 0)
         break;
       NTotalHits--;
     }
-
+    
+    cout << "" << endl;
+    cout << " Chi2 = " << mPath->chiSquare() << ", to be compared with a best Chi2 of " << best_chi2 
+	 <<  " and a Chi2 threshold of " << chiSquareThreshold_ << endl;
     if (mPath->chiSquare() > chiSquareThreshold_)
       continue;
     
+    cout << "Chi2 cut passed" << endl;
+
     evaluateQuality(mPath);
+
+    cout << "Quality = " << mPath->quality() << endl;
 
     if (mPath->quality() < minQuality_)
       continue;
+
+    cout << "Quality cut passed" << endl;
 
     double z = 0.;
     
@@ -227,7 +239,7 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
 
     DTChamberId ChId(thisLId.wheel(), thisLId.station(), thisLId.sector());
 
-    cout << "MB = " << thisLId.station() << ", SL = " << thisLId.superLayer() << ",  layer = " << thisLId.layer() << endl;    
+    // cout << "MB = " << thisLId.station() << ", SL = " << thisLId.superLayer() << ",  layer = " << thisLId.layer() << endl;    
     
     if (thisLId.station() >= 3)
       // z = Z_SHIFT_MB4;
@@ -235,9 +247,9 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
 
     DTSuperLayerId MuonPathSLId(thisLId.wheel(), thisLId.station(), thisLId.sector(), thisLId.superLayer());
 
-    cout << "Jm_x = " << jm_x << endl;
-    cout << "Propagating x to SL1: " << jm_x + mPath->tanPhi() * (11.1 + 0.65) << endl;
-    cout << "Propagating x to SL3: " << jm_x - mPath->tanPhi() * (11.1 + 0.65) << endl;
+    // cout << "Jm_x = " << jm_x << endl;
+    // cout << "Propagating x to SL1: " << jm_x + mPath->tanPhi() * (11.1 + 0.65) << endl;
+    // cout << "Propagating x to SL3: " << jm_x - mPath->tanPhi() * (11.1 + 0.65) << endl;
 
     // Count hits in each SL
     int hits_in_SL1 = 0;
@@ -245,31 +257,37 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
     for (int i = 0; i < mPath->nprimitives(); i++) {
       if (mPath->primitive(i)->isValidTime()) {
 	if (i <= 3) ++hits_in_SL1;
-	else if (i > 4) ++hits_in_SL3;
+	else if (i > 3) ++hits_in_SL3;
       }
     }
+
+    cout << "Hits in SL1 = " << hits_in_SL1 << ", hits in SL3 = " << hits_in_SL3 << endl;
 
     GlobalPoint jm_x_cmssw_global;
     // Depending on which SL has hits, propagate jm_x to SL1, SL3, or to the center of the chamber
     if (hits_in_SL1 > 2 && hits_in_SL3 < 2){
       // Uncorrelated or confirmed with 3 or 4 hits in SL1: propagate to SL1
+      cout << "Uncorrelated or confirmed with 3 or 4 hits in SL1: propagate to SL1" << endl;
       jm_x += mPath->tanPhi() * (11.1 + 0.65); 
       jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(jm_x, 0., z + 11.75));
-      cout << "Local Point = " << LocalPoint(jm_x, 0., z + 11.75) << endl;
+      // cout << "Local Point = " << LocalPoint(jm_x, 0., z + 11.75) << endl;
     }
     else if (hits_in_SL1 < 2 && hits_in_SL3 > 2){
       // Uncorrelated or confirmed with 3 or 4 hits in SL3: propagate to SL3
+      cout << "Uncorrelated or confirmed with 3 or 4 hits in SL3: propagate to SL3" << endl;
       jm_x -= mPath->tanPhi() * (11.1 + 0.65); 
       jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(jm_x, 0., z - 11.75));
-      cout << "Local Point = " << LocalPoint(jm_x, 0., z - 11.75) << endl;
+      // cout << "Local Point = " << LocalPoint(jm_x, 0., z - 11.75) << endl;
     }
-    else if (hits_in_SL1 > 2 && hits_in_SL3 > 2){
+    else if (hits_in_SL1 > 2 && hits_in_SL3 > 2){ // || hits_in_SL1 >= 2 && hits_in_SL3 > 2){
       // Correlated: stay at chamber center
+      cout << "Correlated: stay at chamber center" << endl;
       jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(jm_x, 0., z));
-      cout << "Local Point = " << LocalPoint(jm_x, 0., z) << endl;
+      // cout << "Local Point = " << LocalPoint(jm_x, 0., z) << endl;
     }
     else {
       // Not interesting
+      cout << "Not interesting" << endl;
       continue;
     }
 
@@ -277,8 +295,8 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
     mPath->setHorizPos(jm_x);
 
     
-    cout << "Chamber ID = " << ChId << endl;
-    cout << "SuperLy ID = " << MuonPathSLId << endl;
+    // cout << "Chamber ID = " << ChId << endl;
+    // cout << "SuperLy ID = " << MuonPathSLId << endl;
 
     int thisec = MuonPathSLId.sector();
     if (thisec == 13)
@@ -286,43 +304,69 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
     if (thisec == 14)
       thisec = 10;
 
-    cout << "Global phi = " << jm_x_cmssw_global.phi() << endl;
+    // cout << "Global phi = " << jm_x_cmssw_global.phi() << endl;
     double phi = jm_x_cmssw_global.phi() - PHI_CONV * (thisec - 1);
-    cout << "phi = " << phi * 65536. / 0.8 << endl;
+    // cout << "phi = " << phi * 65536. / 0.8 << endl;
 
     double psi = atan(mPath->tanPhi());
-    cout << "psi = " << psi << endl;
+    // cout << "psi = " << psi << endl;
 
     mPath->setPhi(jm_x_cmssw_global.phi() - PHI_CONV * (thisec - 1));
     mPath->setPhiB(hasPosRF(MuonPathSLId.wheel(), MuonPathSLId.sector()) ? psi - phi : -psi - phi);
 
-    cout << "PhiB = " << mPath->phiB() * 2048. / 1.4 << endl;
+    //    cout << "PhiB = " << mPath->phiB() * 2048. / 1.4 << endl;
 
-    cout << "Evaluating Chi2" << endl;
+    //     cout << "Evaluating Chi2" << endl;
+
+    
+    cout << " Chi2 = " << mPath->chiSquare() << ", to be compared with a best Chi2 of " << best_chi2 << endl;
+    
+    if (mPath->chiSquare() < best_chi2)
+      cout << "Chi2 is smaller than best_chi2" << endl;
+    else 
+      cout << "Chi2 is larger than best_chi2" << endl;
+
+    if (mPath->chiSquare() > 0)
+      cout << "Chi2 is positive" << endl;
+    else
+      cout << "Chi2 is 0 or negative" << endl;
+
 
     if (mPath->chiSquare() < best_chi2 && mPath->chiSquare() > 0) {
+      cout << "New mpAux!" << endl;
       mpAux = std::make_shared<MuonPath>(mPath);
       bestI = i;
       best_chi2 = mPath->chiSquare();
     }
   }
 
-  cout << "Pushing back to output" << endl;
+  cout << "Best laterality: ";
+  for (int p = 0; p < 8; ++p){
+    cout << mPath->primitive(p)->laterality() << " ";
+  }
+  cout << "" << endl;
+ 
+  // cout << "Pushing back to output" << endl;
 
   if (mpAux != nullptr) {
     outMPath.push_back(std::move(mpAux));
-    if (debug_)
+    if (debug_){
       LogDebug("MuonPathAnalyzerInChamber")
           << "DTp2:analize \t\t\t\t\t Laterality " << bestI << " is the one with smaller chi2";
-  } else {
-    if (debug_)
+      cout << "DTp2:analize \t\t\t\t\t Laterality " << bestI << " is the one with smaller chi2" << endl;
+    }
+  } 
+  else {
+    if (debug_){
       LogDebug("MuonPathAnalyzerInChamber")
           << "DTp2:analize \t\t\t\t\t No Laterality found with chi2 smaller than threshold";
+      cout << "DTp2:analize \t\t\t\t\t No Laterality found with chi2 smaller than threshold" << endl;
+    }
   }
   if (debug_)
     LogDebug("MuonPathAnalyzerInChamber") << "DTp2:analize \t\t\t\t\t Ended working with this set of lateralities";
 
-  cout << "Finishing fitting" << endl;
+  // cout << "Finishing fitting" << endl;
 
 }
 
@@ -351,7 +395,7 @@ void MuonPathAnalyzerInChamber::buildLateralities(MuonPathPtr &mpath) {
   if (debug_)
     LogDebug("MuonPathAnalyzerInChamber") << "MPAnalyzer::buildLateralities << setLateralitiesFromPrims ";
 
-  cout << "Inside buildLateralities" << endl;
+  // cout << "Inside buildLateralities" << endl;
 
   mpath->setLateralCombFromPrimitives();
 
@@ -423,11 +467,17 @@ void MuonPathAnalyzerInChamber::buildLateralities(MuonPathPtr &mpath) {
 
 void MuonPathAnalyzerInChamber::setLateralitiesInMP(MuonPathPtr &mpath, TLateralities lat) {
   LATERAL_CASES tmp[NUM_LAYERS_2SL];
-  for (int i = 0; i < 8; i++)
-    tmp[i] = lat[i];
-
-  mpath->setLateralComb(tmp);
+  cout << "Current laterality: ";
+  for (int i = 0; i < 8; i++){
+    //tmp[i] = lat[i];
+    mpath->primitive(i)->setLaterality(lat[i]);
+    cout << " " << lat[i] << " ";
+  }
+  cout << "" <<endl;
+  // Is this working? setLateralComb wants as input a vector of 4 elements
+  //  mpath->setLateralComb(tmp);
 }
+
 void MuonPathAnalyzerInChamber::setWirePosAndTimeInMP(MuonPathPtr &mpath) {
   // Get lower layer with a hit
   int selected_Id = 0;
@@ -480,6 +530,7 @@ void MuonPathAnalyzerInChamber::setWirePosAndTimeInMP(MuonPathPtr &mpath) {
   if (debug_)
     LogDebug("MuonPathAnalyzerInChamber");
 }
+
 void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
                                                        TLateralities laterality,
                                                        int present_layer[NUM_LAYERS_2SL]) {
@@ -530,11 +581,11 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
     if (debug_)
       LogDebug("MuonPathAnalyzerInChamber") << " xhit[lat][lay] " << xhit[lay];
     cbscal = (-1 + 2 * laterality[lay]) * b[lay] + cbscal;
-    zbscal = zwire[lay] * b[lay] + zbscal;  //it actually does not depend on laterality
+    zbscal = zwire[lay] * b[lay] + zbscal;      // it actually does not depend on laterality
     czscal = (-1 + 2 * laterality[lay]) * zwire[lay] + czscal;
 
-    bbscal = b[lay] * b[lay] + bbscal;          //it actually does not depend on laterality
-    zzscal = zwire[lay] * zwire[lay] + zzscal;  //it actually does not depend on laterality
+    bbscal = b[lay] * b[lay] + bbscal;          // it actually does not depend on laterality
+    zzscal = zwire[lay] * zwire[lay] + zzscal;  // it actually does not depend on laterality
     ccscal = (-1 + 2 * laterality[lay]) * (-1 + 2 * laterality[lay]) + ccscal;
   }
 
@@ -673,6 +724,7 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
     mpath->setHorizPos(recpos / 10000);
     mpath->setChiSquare(recchi2 / 100000000);
     setLateralitiesInMP(mpath, laterality);
+
     if (debug_)
       LogDebug("MuonPathAnalyzerInChamber")
           << "In fitPerLat "
@@ -683,23 +735,28 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
 	 << "t0 " << mpath->bxTimeValue() << " slope " << mpath->tanPhi() 
 	 << " pos " << mpath->horizPos() << " chi2 "
 	 << mpath->chiSquare() << " rawId " << mpath->rawId();
-
   }
 }
 
 void MuonPathAnalyzerInChamber::evaluateQuality(MuonPathPtr &mPath) {
   mPath->setQuality(NOPATH);
   
+  cout << " " << endl;  
+  cout << "Lateralities after the fit: ";
+  
   int validHits(0),nPrimsUp(0),nPrimsDown(0);
   for (int i=0; i<NUM_LAYERS_2SL; i++) {
 
-    if (mPath->primitive(i)->isValidTime()) {
+    cout << " " << mPath->primitive(i)->laterality() << " ";
+    if (mPath->primitive(i)->isValidTime()){
       validHits++;       
       if      ( i<4  ) nPrimsDown++; 
       else if ( i>=4 ) nPrimsUp++; 
     }
   }
-  
+
+  cout << " " << endl;
+
   mPath->setNPrimitivesUp(nPrimsUp);
   mPath->setNPrimitivesDown(nPrimsDown);
   
