@@ -167,7 +167,6 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
   if (debug_)
     LogDebug("MuonPathAnalyzerInChamber") << "DTp2:analyze \t\t\t\t\t yes it is analyzable " << mPath->isAnalyzable();
 
-
   // cout << "Building lateralities and setting wires positions" << endl;
 
   // first of all, get info from primitives, so we can reduce the number of latereralities:
@@ -204,8 +203,7 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
       NTotalHits--;
     }
     
-    cout << "" << endl;
-    cout << " Chi2 = " << mPath->chiSquare() << ", to be compared with a best Chi2 of " << best_chi2 
+    cout << "Chi2 = " << mPath->chiSquare() << ", to be compared with a best Chi2 of " << best_chi2 
 	 <<  " and a Chi2 threshold of " << chiSquareThreshold_ << endl;
     if (mPath->chiSquare() > chiSquareThreshold_)
       continue;
@@ -263,27 +261,27 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
 
     cout << "Hits in SL1 = " << hits_in_SL1 << ", hits in SL3 = " << hits_in_SL3 << endl;
 
-    GlobalPoint jm_x_cmssw_global;
     // Depending on which SL has hits, propagate jm_x to SL1, SL3, or to the center of the chamber
-    if (hits_in_SL1 > 2 && hits_in_SL3 < 2){
+    GlobalPoint jm_x_cmssw_global;
+    if (hits_in_SL1 > 2 && hits_in_SL3 <= 2){
       // Uncorrelated or confirmed with 3 or 4 hits in SL1: propagate to SL1
       cout << "Uncorrelated or confirmed with 3 or 4 hits in SL1: propagate to SL1" << endl;
       jm_x += mPath->tanPhi() * (11.1 + 0.65); 
       jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(jm_x, 0., z + 11.75));
-      // cout << "Local Point = " << LocalPoint(jm_x, 0., z + 11.75) << endl;
+      cout << "Local Point = " << LocalPoint(jm_x, 0., z + 11.75) << endl;
     }
-    else if (hits_in_SL1 < 2 && hits_in_SL3 > 2){
+    else if (hits_in_SL1 <= 2 && hits_in_SL3 > 2){
       // Uncorrelated or confirmed with 3 or 4 hits in SL3: propagate to SL3
       cout << "Uncorrelated or confirmed with 3 or 4 hits in SL3: propagate to SL3" << endl;
       jm_x -= mPath->tanPhi() * (11.1 + 0.65); 
       jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(jm_x, 0., z - 11.75));
-      // cout << "Local Point = " << LocalPoint(jm_x, 0., z - 11.75) << endl;
+      cout << "Local Point = " << LocalPoint(jm_x, 0., z - 11.75) << endl;
     }
     else if (hits_in_SL1 > 2 && hits_in_SL3 > 2){ // || hits_in_SL1 >= 2 && hits_in_SL3 > 2){
       // Correlated: stay at chamber center
       cout << "Correlated: stay at chamber center" << endl;
       jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(jm_x, 0., z));
-      // cout << "Local Point = " << LocalPoint(jm_x, 0., z) << endl;
+      cout << "Local Point = " << LocalPoint(jm_x, 0., z) << endl;
     }
     else {
       // Not interesting
@@ -466,7 +464,7 @@ void MuonPathAnalyzerInChamber::buildLateralities(MuonPathPtr &mpath) {
 }
 
 void MuonPathAnalyzerInChamber::setLateralitiesInMP(MuonPathPtr &mpath, TLateralities lat) {
-  LATERAL_CASES tmp[NUM_LAYERS_2SL];
+  // LATERAL_CASES tmp[NUM_LAYERS_2SL];
   cout << "Current laterality: ";
   for (int i = 0; i < 8; i++){
     //tmp[i] = lat[i];
