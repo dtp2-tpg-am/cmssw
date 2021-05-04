@@ -17,31 +17,36 @@
 // Collaborating Class Declarations --
 //------------------------------------
 #include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhDigi.h"
+#include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTExtPhDigi.h"
 
 //----------------------
 // Base Class Headers --
 //----------------------
 #include <vector>
+#include <memory>
 
 //---------------
 // C++ Headers --
 //---------------
 
-//              ---------------------
-//              -- Class Interface --
-//              ---------------------
+//---------------------
+//-- Class Interface --
+//---------------------
+
+template<class T> 
 
 class L1Phase2MuDTPhContainer {
 public:
-  typedef std::vector<L1Phase2MuDTPhDigi> Segment_Container;
-  typedef Segment_Container::const_iterator Segment_iterator;
+
+  typedef std::vector<T> Segment_Container;
+  typedef typename Segment_Container::const_iterator Segment_iterator;
 
   //  Constructor
-  L1Phase2MuDTPhContainer();
+  L1Phase2MuDTPhContainer() {};
 
-  void setContainer(const Segment_Container& inputSegments);
+  void setContainer(const Segment_Container& inputSegments) { m_segments = inputSegments; };
 
-  Segment_Container const* getContainer() const;
+  Segment_Container const* getContainer() const { return &m_segments; }; 
 
 private:
   Segment_Container m_segments;

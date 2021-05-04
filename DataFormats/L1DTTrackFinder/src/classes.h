@@ -5,6 +5,7 @@
 #include <DataFormats/L1DTTrackFinder/interface/L1MuDTChambThContainer.h>
 #include <DataFormats/L1DTTrackFinder/interface/L1MuDTTrackContainer.h>
 #include <DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhDigi.h>
+#include <DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTExtPhDigi.h>
 #include <DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhContainer.h>
 #include <DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTThDigi.h>
 #include <DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTThContainer.h>
