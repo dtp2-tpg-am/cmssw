@@ -104,10 +104,10 @@ void MuonPathAnalyzerInChamber::run(edm::Event &iEvent,
     analyze(*muonpath, outmuonpaths);
 
     if (splitPathPerSL_){
-      if (muonpathUp_ptr->nprimitivesUp() > 1)
+      if (muonpathUp_ptr->nprimitivesUp() > 1 && muonpath->get()->nprimitivesDown() > 0)
 	analyze(muonpathUp_ptr, outmuonpaths);
 
-      if (muonpathDown_ptr->nprimitivesDown() > 1)
+      if (muonpathDown_ptr->nprimitivesDown() > 1 && muonpath->get()->nprimitivesUp() > 0)
 	analyze(muonpathDown_ptr, outmuonpaths);
     }
   }
@@ -183,7 +183,7 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
     if (mPath->quality() < minQuality_)
       continue;
 
-    double z = 0;
+    double z = 0.;
     double jm_x = (mPath->horizPos());
     int selected_Id = 0;
     for (int i = 0; i < mPath->nprimitives(); i++) {
@@ -194,20 +194,64 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
       }
     }
     DTLayerId thisLId(selected_Id);
+    DTChamberId ChId(thisLId.wheel(), thisLId.station(), thisLId.sector());
+
     if (thisLId.station() >= 3)
-      z = Z_SHIFT_MB4;
+      z += Z_SHIFT_MB4;
 
     DTSuperLayerId MuonPathSLId(thisLId.wheel(), thisLId.station(), thisLId.sector(), thisLId.superLayer());
-    GlobalPoint jm_x_cmssw_global = dtGeo_->chamber(MuonPathSLId)->toGlobal(LocalPoint(jm_x, 0., z));
-    //jm_x is already extrapolated to the middle of the SL
+
+    // Count hits in each SL
+    int hits_in_SL1 = 0;
+    int hits_in_SL3 = 0;
+    for (int i = 0; i < mPath->nprimitives(); i++) {
+      if (mPath->primitive(i)->isValidTime()) {
+	if (i <= 3) ++hits_in_SL1;
+	else if (i > 3) ++hits_in_SL3;
+      }
+    }
+
+    // Depending on which SL has hits, propagate jm_x to SL1, SL3, or to the center of the chamber
+    GlobalPoint jm_x_cmssw_global;
+    if (hits_in_SL1 > 2 && hits_in_SL3 <= 2){
+      // Uncorrelated or confirmed with 3 or 4 hits in SL1: propagate to SL1
+      cout << "Uncorrelated or confirmed with 3 or 4 hits in SL1: propagate to SL1" << endl;
+      jm_x += mPath->tanPhi() * (11.1 + 0.65); 
+      jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(jm_x, 0., z + 11.75));
+      cout << "Local Point = " << LocalPoint(jm_x, 0., z + 11.75) << endl;
+    }
+    else if (hits_in_SL1 <= 2 && hits_in_SL3 > 2){
+      // Uncorrelated or confirmed with 3 or 4 hits in SL3: propagate to SL3
+      cout << "Uncorrelated or confirmed with 3 or 4 hits in SL3: propagate to SL3" << endl;
+      jm_x -= mPath->tanPhi() * (11.1 + 0.65); 
+      jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(jm_x, 0., z - 11.75));
+      cout << "Local Point = " << LocalPoint(jm_x, 0., z - 11.75) << endl;
+    }
+    else if (hits_in_SL1 > 2 && hits_in_SL3 > 2){ // || hits_in_SL1 >= 2 && hits_in_SL3 > 2){
+      // Correlated: stay at chamber center
+      cout << "Correlated: stay at chamber center" << endl;
+      jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(jm_x, 0., z));
+      cout << "Local Point = " << LocalPoint(jm_x, 0., z) << endl;
+    }
+    else {
+      // Not interesting
+      cout << "Not interesting" << endl;
+      continue;
+    }
+
+    // Updating muon-path horizontal position
+    mPath->setHorizPos(jm_x);
+
     int thisec = MuonPathSLId.sector();
     if (thisec == 13)
       thisec = 4;
     if (thisec == 14)
       thisec = 10;
+
     double phi = jm_x_cmssw_global.phi() - PHI_CONV * (thisec - 1);
     double psi = atan(mPath->tanPhi());
-    mPath->setPhi(jm_x_cmssw_global.phi() - PHI_CONV * (thisec - 1));
+
+    mPath->setPhi(phi); //jm_x_cmssw_global.phi() - PHI_CONV * (thisec - 1));
     mPath->setPhiB(hasPosRF(MuonPathSLId.wheel(), MuonPathSLId.sector()) ? psi - phi : -psi - phi);
 
     if (mPath->chiSquare() < best_chi2 && mPath->chiSquare() > 0) {
@@ -320,13 +364,12 @@ void MuonPathAnalyzerInChamber::buildLateralities(MuonPathPtr &mpath) {
     }
   }
 }
-void MuonPathAnalyzerInChamber::setLateralitiesInMP(MuonPathPtr &mpath, TLateralities lat) {
-  LATERAL_CASES tmp[NUM_LAYERS_2SL];
-  for (int i = 0; i < 8; i++)
-    tmp[i] = lat[i];
 
-  mpath->setLateralComb(tmp);
+void MuonPathAnalyzerInChamber::setLateralitiesInMP(MuonPathPtr &mpath, TLateralities lat) {
+  for (int i = 0; i < 8; i++)
+    mpath->primitive(i)->setLaterality(lat[i]);
 }
+
 void MuonPathAnalyzerInChamber::setWirePosAndTimeInMP(MuonPathPtr &mpath) {
   int selected_Id = 0;
   for (int i = 0; i < mpath->nprimitives(); i++) {
