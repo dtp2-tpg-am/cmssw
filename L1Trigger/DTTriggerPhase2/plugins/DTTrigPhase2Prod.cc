@@ -43,6 +43,7 @@
 #include "DataFormats/DTDigi/interface/DTDigiCollection.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhContainer.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTPhDigi.h"
+#include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTExtPhContainer.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTExtPhDigi.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTThContainer.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1Phase2MuDTThDigi.h"
@@ -167,9 +168,10 @@ namespace {
 
 DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset)
     : qmap_({{9, 9}, {8, 8}, {7, 6}, {6, 7}, {5, 3}, {4, 5}, {3, 4}, {2, 2}, {1, 1}}) {
-  // produces<L1Phase2MuDTPhContainer>();
-  produces<L1Phase2MuDTPhContainer<L1Phase2MuDTPhDigi>>();
-  produces<L1Phase2MuDTPhContainer<L1Phase2MuDTExtPhDigi>>();
+  produces<L1Phase2MuDTPhContainer>();
+  produces<L1Phase2MuDTExtPhContainer>();
+  // produces<L1Phase2MuDTPhContainer<L1Phase2MuDTPhDigi>>();
+  // produces<L1Phase2MuDTPhContainer<L1Phase2MuDTExtPhDigi>>();
   produces<L1Phase2MuDTThContainer>();
 
   debug_ = pset.getUntrackedParameter<bool>("debug");
@@ -686,12 +688,16 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 
   // Storing Phi results
   if (df_extended_ == 1 || df_extended_ == 2) {
-    auto resultExtP2Ph = std::make_unique<L1Phase2MuDTPhContainer<L1Phase2MuDTExtPhDigi>>();
+    // auto resultExtP2Ph = std::make_unique<L1Phase2MuDTPhContainer<L1Phase2MuDTExtPhDigi>>();
+    // auto resultExtP2Ph = std::make_unique<L1Phase2MuDTExtPhContainer>();
+    std::unique_ptr<L1Phase2MuDTExtPhContainer> resultExtP2Ph(new L1Phase2MuDTExtPhContainer);
     resultExtP2Ph->setContainer(outExtP2Ph);
     iEvent.put(std::move(resultExtP2Ph));
   }
   if (df_extended_ == 0 || df_extended_ == 2) {
-    auto resultP2Ph = std::make_unique<L1Phase2MuDTPhContainer<L1Phase2MuDTPhDigi>>();
+    // auto resultP2Ph = std::make_unique<L1Phase2MuDTPhContainer<L1Phase2MuDTPhDigi>>();
+    // resultP2Ph->setContainer(outP2Ph);
+    std::unique_ptr<L1Phase2MuDTPhContainer> resultP2Ph(new L1Phase2MuDTPhContainer);
     resultP2Ph->setContainer(outP2Ph);
     iEvent.put(std::move(resultP2Ph));
   }
