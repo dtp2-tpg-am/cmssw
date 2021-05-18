@@ -425,6 +425,7 @@ void PseudoBayesGrouping::RecognisePatternsByLayerPairs(DTChamberId chamber_ID) 
   int shift = -1;
 
   // Now define DT geometry depending on its ID
+
   // MB1
   if(MB == 0){
     if (wheel == -1 || wheel == -2)
@@ -433,9 +434,9 @@ void PseudoBayesGrouping::RecognisePatternsByLayerPairs(DTChamberId chamber_ID) 
       shift = 0; // negative (left)
     else if (wheel == 0){
       if (sector == 1 || sector == 4 || sector == 5 || sector == 8 || sector == 9 || sector == 12)
-	shift = 2; // positive (right)
+  	shift = 2; // positive (right)
       else 
-	shift = 0; // negative (left)
+  	shift = 0; // negative (left)
     }
   }
   // MB2
@@ -446,9 +447,9 @@ void PseudoBayesGrouping::RecognisePatternsByLayerPairs(DTChamberId chamber_ID) 
       shift = 2; // positive (right)
     else if (wheel == 0){
       if (sector == 1 || sector == 4 || sector == 5 || sector == 8 || sector == 9 || sector == 12)
-	shift = 0; // negative (left) 
+  	shift = 0; // negative (left) 
       else 
-	shift = 2; // positive (right) 
+  	shift = 2; // positive (right) 
     }
   }
   // MB3
@@ -459,27 +460,86 @@ void PseudoBayesGrouping::RecognisePatternsByLayerPairs(DTChamberId chamber_ID) 
   else if (MB == 3){
     if (wheel == -1 || wheel == -2)
       if (sector == 4 || sector == 9 || sector == 11 || sector == 13)
-	shift = 1; // no shift
+  	shift = 1; // no shift
       else if (sector == 5 || sector == 6 || sector == 7 || sector == 8 || sector == 14)
-	shift = 2; // positive (right)
+  	shift = 2; // positive (right)
       else 
-	shift = 0; // negative (left)
+  	shift = 0; // negative (left)
     else if (wheel == 1 || wheel == 2)
       if (sector == 4 || sector == 9 || sector == 11 || sector == 13)
-	shift = 1; // no shift
+  	shift = 1; // no shift
       else if (sector == 1 || sector == 2 || sector == 3 || sector == 10 || sector == 12)
-	shift = 2; // positive (right)
+  	shift = 2; // positive (right)
       else
-	shift = 0; // negative (left)
+  	shift = 0; // negative (left)
     else if (wheel == 0)
       if (sector == 4 || sector == 9 || sector == 11 || sector == 13)
-	shift = 1; // no shift
+  	shift = 1; // no shift
       else if (sector == 2 || sector == 3 || sector == 5 || sector == 8 || sector == 10)
-	shift = 2; // positive (right)
+  	shift = 2; // positive (right)
       else
-	shift = 0; // negative (left)      
+  	shift = 0; // negative (left)      
     else return;
   }
+
+  // // Changing reference (left becomes right)
+
+  // // MB1
+  // if(MB == 0){
+  //   if (wheel == -1 || wheel == -2)
+  //     shift = 0; // positive (right)
+  //   else if (wheel == 1 || wheel == 2)
+  //     shift = 2; // negative (left)
+  //   else if (wheel == 0){
+  //     if (sector == 1 || sector == 4 || sector == 5 || sector == 8 || sector == 9 || sector == 12)
+  // 	shift = 0; // positive (right)
+  //     else 
+  // 	shift = 2; // negative (left)
+  //   }
+  // }
+  // // MB2
+  // else if (MB == 1){
+  //   if (wheel == -1 || wheel == -2)
+  //     shift = 2; // negative (left)
+  //   else if (wheel == 1 || wheel == 2)
+  //     shift = 0; // positive (right)
+  //   else if (wheel == 0){
+  //     if (sector == 1 || sector == 4 || sector == 5 || sector == 8 || sector == 9 || sector == 12)
+  // 	shift = 2; // negative (left) 
+  //     else 
+  // 	shift = 0; // positive (right) 
+  //   }
+  // }
+  // // MB3
+  // else if (MB == 2){
+  //   shift = 1; // shift is always 0 in MB3
+  // }
+  // // MB4
+  // else if (MB == 3){
+  //   if (wheel == -1 || wheel == -2)
+  //     if (sector == 4 || sector == 9 || sector == 11 || sector == 13)
+  // 	shift = 1; // no shift
+  //     else if (sector == 5 || sector == 6 || sector == 7 || sector == 8 || sector == 14)
+  // 	shift = 0; // positive (right)
+  //     else 
+  // 	shift = 2; // negative (left)
+  //   else if (wheel == 1 || wheel == 2)
+  //     if (sector == 4 || sector == 9 || sector == 11 || sector == 13)
+  // 	shift = 1; // no shift
+  //     else if (sector == 1 || sector == 2 || sector == 3 || sector == 10 || sector == 12)
+  // 	shift = 0; // positive (right)
+  //     else
+  // 	shift = 2; // negative (left)
+  //   else if (wheel == 0)
+  //     if (sector == 4 || sector == 9 || sector == 11 || sector == 13)
+  // 	shift = 1; // no shift
+  //     else if (sector == 2 || sector == 3 || sector == 5 || sector == 8 || sector == 10)
+  // 	shift = 0; // positive (right)
+  //     else
+  // 	shift = 2; // negative (left)      
+  //   else return;
+  // }
+
 
   //Separated from main run function for clarity. Do all pattern recognition steps
   pidx_ = 0;

@@ -41,7 +41,7 @@ process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.minNLayerHits = 3
 process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.minSingleSLHitsMax = 3 
 process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.minSingleSLHitsMin = 0 
 process.dtTriggerPhase2BayesPrimitiveDigis.PseudoBayesPattern.allowedVariance = 1
-process.dtTriggerPhase2BayesPrimitiveDigis.timeTolerance = cms.int32(300)
+#process.dtTriggerPhase2BayesPrimitiveDigis.timeTolerance = cms.int32(999999)
 
 
 # STD

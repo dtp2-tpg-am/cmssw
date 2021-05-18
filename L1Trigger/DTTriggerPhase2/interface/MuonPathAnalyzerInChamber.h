@@ -63,7 +63,7 @@ private:
   void buildLateralities(MuonPathPtr &mpath);
   void setLateralitiesInMP(MuonPathPtr &mpath, TLateralities lat);
   void setWirePosAndTimeInMP(MuonPathPtr &mpath);
-  void calculateFitParameters(MuonPathPtr &mpath, TLateralities lat, int present_layer[NLayers]);
+  void calculateFitParameters(MuonPathPtr &mpath, TLateralities lat, int present_layer[NLayers], int &lat_added);
 
   void evaluateQuality(MuonPathPtr &mPath);
   int totalNumValLateralities_;

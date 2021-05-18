@@ -152,7 +152,13 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
   std::shared_ptr<MuonPath> mpAux;
   int bestI = -1;
   float best_chi2 = 99999.;
-  for (int i = 0; i < totalNumValLateralities_; i++) {  // LOOP for all lateralities:
+  int added_lat = 0;
+
+  //  for (int i = 0; i < totalNumValLateralities_; i++) {  // LOOP for all lateralities:
+  for (int i = 0; i < (int)lateralities_.size(); i++) {  // LOOP for all lateralities:
+
+    cout << "Laterlity " << i << "/" << (int)lateralities_.size() << endl;
+
     if (debug_)
       LogDebug("MuonPathAnalyzerInChamber") << "DTp2:analyze \t\t\t\t\t Start with combination " << i;
     int NTotalHits = NUM_LAYERS_2SL;
@@ -170,7 +176,7 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
 
     while (NTotalHits >= minHits4Fit_) {
       mPath->setChiSquare(0);
-      calculateFitParameters(mPath, lateralities_[i], present_layer);
+      calculateFitParameters(mPath, lateralities_[i], present_layer, added_lat);
       if (mPath->chiSquare() != 0)
         break;
       NTotalHits--;
@@ -422,7 +428,21 @@ void MuonPathAnalyzerInChamber::setWirePosAndTimeInMP(MuonPathPtr &mpath) {
 }
 void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
                                                        TLateralities laterality,
-                                                       int present_layer[NUM_LAYERS_2SL]) {
+                                                       int present_layer[NUM_LAYERS_2SL],
+						       int &lat_added) {
+
+  cout << "Fitting path: ";
+  for (int l = 0; l < 8; ++l){
+    cout << " " << mpath->primitive(l)->channelId() << " ";
+  }
+  cout << "" << endl;
+
+  cout << "Fitting laterality: ";
+  for (int l = 0; l < 8; ++l){
+    cout << " " << laterality[l] << " ";
+  }
+  cout << "" << endl;
+
   // First prepare mpath for fit:
   float xwire[NUM_LAYERS_2SL], zwire[NUM_LAYERS_2SL], tTDCvdrift[NUM_LAYERS_2SL];
   double b[NUM_LAYERS_2SL];
@@ -552,8 +572,11 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
   int physical_slope = {0};
 
   // Select the worst hit in order to get rid of it
+  // Also, check if any hits are close to the wire (rectdriftvdrift[lay] < 0.3 cm)
+  // --> in that case, try also changing laterality of such hit
   double maxDif = -1;
   int maxInt = -1;
+  int swap_laterality[8] = {0};
 
   for (int lay = 0; lay < 8; lay++) {
     if (present_layer[lay] == 0)
@@ -563,12 +586,20 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
       LogDebug("MuonPathAnalyzerInChamber") << rectdriftvdrift[lay];
     recres[lay] = xhit[lay] - zwire[lay] * recslope - b[lay] * recpos - (-1 + 2 * laterality[lay]) * rect0vdrift;
 
-    // cout << "xhit = " << xhit[lay]
-    // 	 << ", rect0vdrift = " << rect0vdrift 
-    // 	 << ", zwire = " << zwire[lay]
-    // 	 << ", recslope = " << recslope 
-    // 	 << ", recpos = " << recpos 
-    // 	 << endl;
+    cout << "xhit = " << xhit[lay]
+	 << ", rec x = " << rectdriftvdrift[lay] // in mm?
+	 << ", xwire = " << xwire[lay]
+    	 << ", rect0vdrift = " << rect0vdrift 
+    	 // << ", zwire = " << zwire[lay]
+    	 // << ", recslope = " << recslope 
+    	 // << ", recpos = " << recpos 
+    	 << endl;
+
+    // If a hit is too close to the wire, set its corresponding "swap" flag to 1
+    if (abs(rectdriftvdrift[lay]) < 3){
+      cout << "Reconstructed hit position at less than 3 mm wrt wire!" << endl;
+      swap_laterality[lay] = 1;
+    }
 
     if ((present_layer[lay] == 1) && (rectdriftvdrift[lay] < -0.1)) {
       sign_tdriftvdrift = -1;
@@ -584,6 +615,46 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
         maxInt = lay;
       }
     }
+  }
+
+  // Now consider all possible alternative lateralities and push to lateralities_ those 
+  // we aren't considering yet
+  if (lat_added == 0){
+    std::vector<TLateralities> additional_lateralities;
+    additional_lateralities.clear();
+    additional_lateralities.push_back(laterality);
+    // Everytime the swap flag is 1, duplicate all the current elements
+    // of additional_lateralities and swap their laterality
+    for (int swap = 0; swap < 8; ++swap){
+      if (swap_laterality[swap] == 1){
+	int add_lat_size = int(additional_lateralities.size());
+	for (int ll = 0; ll < add_lat_size; ++ll){
+	  TLateralities tmp_lat = additional_lateralities[ll];
+	  if (tmp_lat[swap] == LEFT) 
+	    tmp_lat[swap] = RIGHT;
+	  else if (tmp_lat[swap] == RIGHT) 
+	    tmp_lat[swap] = LEFT;
+	  else continue;
+	  additional_lateralities.push_back(tmp_lat);
+	}
+      }
+    }
+    // Now compare all the additional lateralities with the lateralities we are considering:
+    // if they are not there, add them
+    int already_there = 0;
+    for (int k = 0; k < int(additional_lateralities.size()); ++k){
+      already_there = 0;
+      for (int j = 0; j < int(lateralities_.size()); ++j){
+	if (additional_lateralities[k] == lateralities_[j]) 
+	  already_there = 1;
+      }
+      if (already_there == 0){
+	lateralities_.push_back(additional_lateralities[k]);
+	cout << "I added one laterality!" << endl;
+      }
+    }
+    additional_lateralities.clear();
+    lat_added = 1;
   }
 
   if (fabs(recslope / 10) > 1.3)
