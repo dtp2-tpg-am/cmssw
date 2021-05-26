@@ -122,7 +122,7 @@ private:
   bool do_correlation_;
   int scenario_;
   int df_extended_;
-  bool cmssw_for_global_;
+  // bool cmssw_for_global_;
   std::string geometry_tag_;
 
   // ParameterSet
@@ -193,13 +193,13 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset)
   cout << "Algorithm = " << algo_ << endl;
 
   // Local to global coordinates approach
-  cmssw_for_global_ = pset.getUntrackedParameter<bool>("cmssw_for_global", true);
+  //  cmssw_for_global_ = pset.getUntrackedParameter<bool>("cmssw_for_global", true);
   geometry_tag_ = pset.getUntrackedParameter<std::string>("geometry_tag", "");
 
   edm::ConsumesCollector consumesColl(consumesCollector());
   globalcoordsobtainer_ = std::make_shared<GlobalCoordsObtainer>(pset);
-  if (!cmssw_for_global_)
-    globalcoordsobtainer_->generate_luts();
+  // if (!cmssw_for_global_)
+  globalcoordsobtainer_->generate_luts();
 
   if (algo_ == PseudoBayes) {
     grouping_obj_ =
@@ -218,7 +218,7 @@ DTTrigPhase2Prod::DTTrigPhase2Prod(const ParameterSet& pset)
   } else {
     if (debug_)
       LogDebug("DTTrigPhase2Prod") << "DTp2:constructor: Full chamber analyzer";
-    mpathanalyzer_ = std::make_unique<MuonPathAnalyzerInChamber>(pset, consumesColl);
+    mpathanalyzer_ = std::make_unique<MuonPathAnalyzerInChamber>(pset, consumesColl, globalcoordsobtainer_);
   }
   
 
@@ -506,6 +506,8 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
                                             muonpath->tanPhi(),
                                             muonpath->phi(),
                                             muonpath->phiB(),
+                                            muonpath->phi_cmssw(),
+                                            muonpath->phiB_cmssw(),
                                             muonpath->chiSquare(),
                                             (int)muonpath->quality(),
                                             muonpath->primitive(0)->channelId(),
@@ -631,8 +633,8 @@ void DTTrigPhase2Prod::produce(Event& iEvent, const EventSetup& iEventSetup) {
 						      (int)round(metaPrimitiveIt.chi2 * CHI2RES_CONV),             // uchi2 (m_chi2Segment)
 						      (int)round(metaPrimitiveIt.x * 1000),                        // ux (m_xLocal)
 						      (int)round(metaPrimitiveIt.tanPhi * 1000),                   // utan (m_tanPsi)
-						      (int)round(metaPrimitiveIt.phi * 65536. / 0.8),              // uphi (_phiAngleCMSSW)     <-- in theory. For the moment, same as phi
-						      (int)round(metaPrimitiveIt.phiB * 2048. / 1.4),              // uphib (m_phiBendingCMSSW) <-- in theory. For the moment, same as phiB
+						      (int)round(metaPrimitiveIt.phi_cmssw * 65536. / 0.8),        // uphi (_phiAngleCMSSW)
+						      (int)round(metaPrimitiveIt.phiB_cmssw * 2048. / 1.4),        // uphib (m_phiBendingCMSSW)
 						      metaPrimitiveIt.rpcFlag,                                     // urpc (m_rpcFlag)
 						      pathWireId,
 						      pathTDC,

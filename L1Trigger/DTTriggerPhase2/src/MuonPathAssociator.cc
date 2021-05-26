@@ -22,7 +22,7 @@ MuonPathAssociator::MuonPathAssociator(const ParameterSet &pset, edm::ConsumesCo
   dTanPsi_correlate_TP_ = pset.getUntrackedParameter<double>("dTanPsi_correlate_TP");
   minx_match_2digis_ = pset.getUntrackedParameter<double>("minx_match_2digis");
   chi2corTh_ = pset.getUntrackedParameter<double>("chi2corTh");
-  cmssw_for_global_ = pset.getUntrackedParameter<bool>("cmssw_for_global");
+  // cmssw_for_global_ = pset.getUntrackedParameter<bool>("cmssw_for_global");
   geometry_tag_ = pset.getUntrackedParameter<std::string>("geometry_tag");
 
   if (debug_)
@@ -263,29 +263,32 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
             if (SL3metaPrimitive->quality == HIGHQ && SL1metaPrimitive->quality == HIGHQ)
               quality = HIGHHIGHQ;
 
-            double phi = -999.;
+            double phi  = -999.;
             double phiB = -999.;
-            if (cmssw_for_global_) {
-              double z = 0;
-              if (ChId.station() >= 3)
-                z = Z_SHIFT_MB4;
-              GlobalPoint jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(
-                  LocalPoint(MeanPos, 0., z));  //Jm_x is already extrapolated to the middle of the SL
-              int thisec = ChId.sector();
-              if (se == 13)
-                thisec = 4;
-              if (se == 14)
-                thisec = 10;
-              phi = jm_x_cmssw_global.phi() - PHI_CONV * (thisec - 1);
-              double psi = atan(NewSlope);
-              phiB = hasPosRF(ChId.wheel(), ChId.sector()) ? psi - phi : -psi - phi;
-            } else {
-              auto global_coords = globalcoordsobtainer_->get_global_coordinates(
-                ChId.rawId(), 0, pos, tanpsi);
+            double phi_cmssw  = -999.;
+            double phiB_cmssw = -999.;
+            // if (cmssw_for_global_) {
+	    double z = 0;
+	    if (ChId.station() >= 3)
+	      z = Z_SHIFT_MB4;
+	    GlobalPoint jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(
+		LocalPoint(MeanPos, 0., z));  //Jm_x is already extrapolated to the middle of the SL
+	    int thisec = ChId.sector();
+	    if (se == 13)
+	      thisec = 4;
+	    if (se == 14)
+	      thisec = 10;
+	    phi_cmssw = jm_x_cmssw_global.phi() - PHI_CONV * (thisec - 1);
+	    double psi = atan(NewSlope);
+	    phiB_cmssw = hasPosRF(ChId.wheel(), ChId.sector()) ? psi - phi_cmssw : -psi - phi_cmssw;
+	    //}
+	    // else {
+	    auto global_coords = globalcoordsobtainer_->get_global_coordinates(
+              ChId.rawId(), 0, pos, tanpsi);
 
-              phi = global_coords[0];
-              phiB = global_coords[1];
-            }
+	    phi = global_coords[0];
+	    phiB = global_coords[1];
+	      // }
 
             if (!clean_chi2_correlation_)
               outMPaths.emplace_back(ChId.rawId(),
@@ -294,6 +297,8 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
                                      NewSlope,
                                      phi,
                                      phiB,
+                                     phi_cmssw,
+                                     phiB_cmssw,
                                      newChi2,
                                      quality,
                                      SL1metaPrimitive->wi1,
@@ -327,6 +332,8 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
                                                  NewSlope,
                                                  phi,
                                                  phiB,
+                                                 phi_cmssw,
+                                                 phiB_cmssw,
                                                  newChi2,
                                                  quality,
                                                  SL1metaPrimitive->wi1,
@@ -486,6 +493,8 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
                                                       SL1metaPrimitive->tanPhi,
                                                       SL1metaPrimitive->phi,
                                                       SL1metaPrimitive->phiB,
+                                                      SL1metaPrimitive->phi_cmssw,
+                                                      SL1metaPrimitive->phiB_cmssw,
                                                       SL1metaPrimitive->chi2,
                                                       new_quality,
                                                       SL1metaPrimitive->wi1,
@@ -520,6 +529,8 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
                                                                     SL1metaPrimitive->tanPhi,
                                                                     SL1metaPrimitive->phi,
                                                                     SL1metaPrimitive->phiB,
+                                                                    SL1metaPrimitive->phi_cmssw,
+                                                                    SL1metaPrimitive->phiB_cmssw,
                                                                     SL1metaPrimitive->chi2,
                                                                     new_quality,
                                                                     SL1metaPrimitive->wi1,
@@ -691,6 +702,8 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
                                                    SL3metaPrimitive->tanPhi,
                                                    SL3metaPrimitive->phi,
                                                    SL3metaPrimitive->phiB,
+                                                   SL3metaPrimitive->phi_cmssw,
+                                                   SL3metaPrimitive->phiB_cmssw,
                                                    SL3metaPrimitive->chi2,
                                                    new_quality,
                                                    wi1,
@@ -725,6 +738,8 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
                                                                  SL3metaPrimitive->tanPhi,
                                                                  SL3metaPrimitive->phi,
                                                                  SL3metaPrimitive->phiB,
+                                                                 SL3metaPrimitive->phi_cmssw,
+                                                                 SL3metaPrimitive->phiB_cmssw,
                                                                  SL3metaPrimitive->chi2,
                                                                  new_quality,
                                                                  wi1,
@@ -792,6 +807,8 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
                                                    SL1metaPrimitive->tanPhi,
                                                    SL1metaPrimitive->phi,
                                                    SL1metaPrimitive->phiB,
+                                                   SL1metaPrimitive->phi_cmssw,
+                                                   SL1metaPrimitive->phiB_cmssw,
                                                    SL1metaPrimitive->chi2,
                                                    SL1metaPrimitive->quality,
                                                    SL1metaPrimitive->wi1,
@@ -850,6 +867,8 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
                                                    SL3metaPrimitive->tanPhi,
                                                    SL3metaPrimitive->phi,
                                                    SL3metaPrimitive->phiB,
+                                                   SL3metaPrimitive->phi_cmssw,
+                                                   SL3metaPrimitive->phiB_cmssw,
                                                    SL3metaPrimitive->chi2,
                                                    SL3metaPrimitive->quality,
                                                    -1,

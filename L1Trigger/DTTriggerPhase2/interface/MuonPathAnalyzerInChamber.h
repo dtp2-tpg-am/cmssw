@@ -2,6 +2,7 @@
 #define L1Trigger_DTTriggerPhase2_MuonPathAnalyzerInChamber_h
 
 #include "L1Trigger/DTTriggerPhase2/interface/MuonPathAnalyzer.h"
+#include "L1Trigger/DTTriggerPhase2/interface/GlobalCoordsObtainer.h"
 
 // ===============================================================================
 // Previous definitions and declarations
@@ -17,7 +18,8 @@ namespace {
 class MuonPathAnalyzerInChamber : public MuonPathAnalyzer {
 public:
   // Constructors and destructor
-  MuonPathAnalyzerInChamber(const edm::ParameterSet &pset, edm::ConsumesCollector &iC);
+  MuonPathAnalyzerInChamber(const edm::ParameterSet &pset, edm::ConsumesCollector &iC, 
+			    std::shared_ptr<GlobalCoordsObtainer> & globalcoordsobtainer);
   ~MuonPathAnalyzerInChamber() override;
 
   // Main methods
@@ -79,6 +81,10 @@ private:
   short minHits4Fit_;
   int cellLayout_[NLayers];
   bool splitPathPerSL_;
+  
+  // global coordinates
+  std::shared_ptr<GlobalCoordsObtainer> globalcoordsobtainer_;
+
 };
 
 #endif

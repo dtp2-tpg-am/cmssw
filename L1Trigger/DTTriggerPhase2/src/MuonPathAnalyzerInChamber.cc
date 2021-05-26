@@ -8,7 +8,7 @@ using namespace cmsdt;
 // ============================================================================
 // Constructors and destructor
 // ============================================================================
-MuonPathAnalyzerInChamber::MuonPathAnalyzerInChamber(const ParameterSet &pset, edm::ConsumesCollector &iC)
+MuonPathAnalyzerInChamber::MuonPathAnalyzerInChamber(const ParameterSet &pset, edm::ConsumesCollector &iC, std::shared_ptr<GlobalCoordsObtainer> & globalcoordsobtainer)
     : MuonPathAnalyzer(pset, iC),
       debug_(pset.getUntrackedParameter<bool>("debug")),
       chi2Th_(pset.getUntrackedParameter<double>("chi2Th")),
@@ -23,7 +23,8 @@ MuonPathAnalyzerInChamber::MuonPathAnalyzerInChamber(const ParameterSet &pset, e
   if (debug_)
     LogDebug("MuonPathAnalyzerInChamber") << "MuonPathAnalyzer: constructor";
 
-  setChiSquareThreshold(chi2Th_ * 100.);
+  // setChiSquareThreshold(chi2Th_ * 100.);
+  setChiSquareThreshold(chi2Th_ * 10000.);
 
   //shift
   int rawId;
@@ -39,6 +40,7 @@ MuonPathAnalyzerInChamber::MuonPathAnalyzerInChamber(const ParameterSet &pset, e
   }
 
   dtGeomH = iC.esConsumes<DTGeometry, MuonGeometryRecord, edm::Transition::BeginRun>();
+  globalcoordsobtainer_ = globalcoordsobtainer;
 }
 
 MuonPathAnalyzerInChamber::~MuonPathAnalyzerInChamber() {
@@ -181,6 +183,9 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
         break;
       NTotalHits--;
     }
+
+    // if (NTotalHits > 4 && (NTotalHits - 3)*mPath->chiSquare() > chiSquareThreshold_)
+    //   continue;
     if (mPath->chiSquare() > chiSquareThreshold_)
       continue;
 
@@ -217,6 +222,7 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
       }
     }
 
+    int SL_for_LUT = 0;
     // Depending on which SL has hits, propagate jm_x to SL1, SL3, or to the center of the chamber
     GlobalPoint jm_x_cmssw_global;
     if (hits_in_SL1 > 2 && hits_in_SL3 <= 2){
@@ -224,26 +230,34 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
       cout << "Uncorrelated or confirmed with 3 or 4 hits in SL1: propagate to SL1" << endl;
       jm_x += mPath->tanPhi() * (11.1 + 0.65); 
       jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(jm_x, 0., z + 11.75));
+      SL_for_LUT = 1;
       cout << "Local Point = " << LocalPoint(jm_x, 0., z + 11.75) << endl;
+      cout << "Input to local point = " << jm_x << " " << z << endl;
     }
     else if (hits_in_SL1 <= 2 && hits_in_SL3 > 2){
       // Uncorrelated or confirmed with 3 or 4 hits in SL3: propagate to SL3
       cout << "Uncorrelated or confirmed with 3 or 4 hits in SL3: propagate to SL3" << endl;
       jm_x -= mPath->tanPhi() * (11.1 + 0.65); 
       jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(jm_x, 0., z - 11.75));
+      SL_for_LUT = 3;
       cout << "Local Point = " << LocalPoint(jm_x, 0., z - 11.75) << endl;
+      cout << "Input to local point = " << jm_x << " " << z << endl;
     }
     else if (hits_in_SL1 > 2 && hits_in_SL3 > 2){ // || hits_in_SL1 >= 2 && hits_in_SL3 > 2){
       // Correlated: stay at chamber center
       cout << "Correlated: stay at chamber center" << endl;
       jm_x_cmssw_global = dtGeo_->chamber(ChId)->toGlobal(LocalPoint(jm_x, 0., z));
       cout << "Local Point = " << LocalPoint(jm_x, 0., z) << endl;
+      cout << "Input to local point = " << jm_x << " " << z << endl;
     }
     else {
       // Not interesting
       cout << "Not interesting" << endl;
       continue;
     }
+
+    // Protection against non-converged fits
+    if (isnan(jm_x)) continue;
 
     // Updating muon-path horizontal position
     mPath->setHorizPos(jm_x);
@@ -254,11 +268,41 @@ void MuonPathAnalyzerInChamber::analyze(MuonPathPtr &inMPath, MuonPathPtrs &outM
     if (thisec == 14)
       thisec = 10;
 
-    double phi = jm_x_cmssw_global.phi() - PHI_CONV * (thisec - 1);
+    // Global coordinates from CMSSW
+    double phi_cmssw = jm_x_cmssw_global.phi() - PHI_CONV * (thisec - 1);
     double psi = atan(mPath->tanPhi());
+    mPath->setPhiCMSSW(phi_cmssw);
+    mPath->setPhiBCMSSW(hasPosRF(MuonPathSLId.wheel(), MuonPathSLId.sector()) ? psi - phi_cmssw : -psi - phi_cmssw);
 
-    mPath->setPhi(phi); //jm_x_cmssw_global.phi() - PHI_CONV * (thisec - 1));
-    mPath->setPhiB(hasPosRF(MuonPathSLId.wheel(), MuonPathSLId.sector()) ? psi - phi : -psi - phi);
+    // Global coordinates from LUTs (firmware-like)
+    double phi  = -999.;
+    double phiB = -999.;
+    double x_lut, slope_lut;
+    DTSuperLayerId MuonPathSLId1(thisLId.wheel(), thisLId.station(), thisLId.sector(), 1);
+    DTSuperLayerId MuonPathSLId3(thisLId.wheel(), thisLId.station(), thisLId.sector(), 3);
+    DTWireId wireId1(MuonPathSLId1, 2, 1);
+    DTWireId wireId3(MuonPathSLId3, 2, 1);
+
+    // use SL_for_LUT to decide the shift: x-axis origin for LUTs is left chamber side
+    double shift_for_lut = 0.;
+    if (SL_for_LUT == 1){
+      shift_for_lut = int(10 * shiftinfo_[wireId1.rawId()] * INCREASED_RES_POS_POW);
+    }
+    else if (SL_for_LUT == 3){
+      shift_for_lut = int(10 * shiftinfo_[wireId3.rawId()] * INCREASED_RES_POS_POW);
+    }
+    else {
+      shift_for_lut = int(10 * 0.5*(shiftinfo_[wireId1.rawId()] + shiftinfo_[wireId3.rawId()]) * INCREASED_RES_POS_POW);      
+    }
+    x_lut = double(jm_x)*10.*INCREASED_RES_POS_POW - shift_for_lut;    // position in cm * precision in JM RF
+    // x_lut /=  (10. * INCREASED_RES_POS_POW); // position in cm w.r.t center of the chamber
+    slope_lut = - (double(mPath->tanPhi()) * INCREASED_RES_SLOPE_POW);
+
+    auto global_coords = globalcoordsobtainer_->get_global_coordinates(ChId.rawId(), SL_for_LUT, x_lut, slope_lut);
+    phi  = global_coords[0];
+    phiB = global_coords[1];
+    mPath->setPhi(phi);
+    mPath->setPhiB(phiB);
 
     if (mPath->chiSquare() < best_chi2 && mPath->chiSquare() > 0) {
       mpAux = std::make_shared<MuonPath>(mPath);
@@ -442,6 +486,12 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
     cout << " " << laterality[l] << " ";
   }
   cout << "" << endl;
+
+  int n_hits = 0;
+  for (int l = 0; l < 8; ++l){
+    if (present_layer[l] == 1) n_hits++;
+  }
+  cout << "Current path has " << n_hits << " hits" << endl;
 
   // First prepare mpath for fit:
   float xwire[NUM_LAYERS_2SL], zwire[NUM_LAYERS_2SL], tTDCvdrift[NUM_LAYERS_2SL];
@@ -672,6 +722,8 @@ void MuonPathAnalyzerInChamber::calculateFitParameters(MuonPathPtr &mpath,
       continue;
     recchi2 = recres[lay] * recres[lay] + recchi2;
   }
+  if (n_hits > 4)
+    recchi2 = recchi2 / (n_hits - 3);
   if (debug_)
     LogDebug("MuonPathAnalyzerInChamber")
         << "In fitPerLat Chi2 " << recchi2 << " with sign " << sign_tdriftvdrift << " within cell "
