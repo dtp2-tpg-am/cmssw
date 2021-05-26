@@ -1,12 +1,12 @@
 //-------------------------------------------------
 //
-//   Class L1MuDTChambPhDigi
+//   Class L1Phase2MuDTExtPhDigi.cc
 //
 //   Description: trigger primtive data for the
 //                muon barrel Phase2 trigger
 //
 //
-//   Author List: Federica Primavera  Bologna INFN
+//   Author List: Nicolo' Trevisani - Oviedo ICTEA 
 //
 //
 //--------------------------------------------------

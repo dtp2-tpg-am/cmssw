@@ -327,11 +327,38 @@ void MuonPathAnalyticAnalyzer::segment_fitter(DTSuperLayerId MuonPathSLId, int w
     
   }
   else {
+    // Impose the thresholds
+    if(std::abs(MuonPathSLId.wheel()) == 2){
+      if (slope_f > tanPhiThw2max_ or slope_f < tanPhiThw2min_) return;
+    }
+    if(std::abs(MuonPathSLId.wheel()) == 1){
+      if (slope_f > tanPhiThw1max_ or slope_f < tanPhiThw1min_) return;
+    }
+    if(MuonPathSLId.wheel() == 0){
+      if (std::abs(slope_f) > tanPhiThw0_) return;
+    }
+
+    // Using LUTs?
     DTLayerId SL2_layer2Id(MuonPathSLId, 2);
     double z_shift = shiftthetainfo_[SL2_layer2Id.rawId()];     
     double jm_y = hasPosRF(MuonPathSLId.wheel(), MuonPathSLId.sector()) ? z_shift - pos_f : z_shift + pos_f;
-    phi = jm_y;
+    phi  = jm_y;
     phiB = slope_f;
+    
+    // Using CMSSW
+    LocalPoint wire1_in_layer(dtGeo_->layer(SL2_layer2Id)->specificTopology().wirePosition(1), 0, -0.65);
+    GlobalPoint wire1_in_global = dtGeo_->layer(SL2_layer2Id)->toGlobal(wire1_in_layer);
+    LocalPoint wire1_in_sl = dtGeo_->superLayer(MuonPathSLId)->toLocal(wire1_in_global);
+    double x_shift = wire1_in_sl.x();
+    jm_y = (dtGeo_->superLayer(MuonPathSLId)->toGlobal(LocalPoint(double(pos)/(10*pow(2, INCREASED_RES_POS)) + x_shift ,0., 0))).z();
+    phi_cmssw  = jm_y;
+    phiB_cmssw = slope_f;
+
+    // DTLayerId SL2_layer2Id(MuonPathSLId, 2);
+    // double z_shift = shiftthetainfo_[SL2_layer2Id.rawId()];     
+    // double jm_y = hasPosRF(MuonPathSLId.wheel(), MuonPathSLId.sector()) ? z_shift - pos_f : z_shift + pos_f;
+    // phi = jm_y;
+    // phiB = slope_f;
   }  
 
   // get the lateralities (in reverse order) in order to fill the metaprimitive
@@ -341,36 +368,36 @@ void MuonPathAnalyticAnalyzer::segment_fitter(DTSuperLayerId MuonPathSLId, int w
       lateralities[lay] = -1;
   }
   
-  if (MuonPathSLId.superLayer() == 2){
-    // Impose the thresholds
-    if(std::abs(MuonPathSLId.wheel()) == 2){
-      if (slope_f > tanPhiThw2max_ or slope_f < tanPhiThw2min_) return;
-    }
+  // if (MuonPathSLId.superLayer() == 2){
+  //   // Impose the thresholds
+  //   if(std::abs(MuonPathSLId.wheel()) == 2){
+  //     if (slope_f > tanPhiThw2max_ or slope_f < tanPhiThw2min_) return;
+  //   }
       
-    if(std::abs(MuonPathSLId.wheel()) == 1){
-      if (slope_f > tanPhiThw1max_ or slope_f < tanPhiThw1min_) return;
-    }
+  //   if(std::abs(MuonPathSLId.wheel()) == 1){
+  //     if (slope_f > tanPhiThw1max_ or slope_f < tanPhiThw1min_) return;
+  //   }
     
-    if(MuonPathSLId.wheel() == 0){
-      if (std::abs(slope_f) > tanPhiThw0_) return;
-    }
+  //   if(MuonPathSLId.wheel() == 0){
+  //     if (std::abs(slope_f) > tanPhiThw0_) return;
+  //   }
       
-    DTLayerId SL2_layer2Id(MuonPathSLId, 2);
-    double z_shift = shiftthetainfo_[SL2_layer2Id.rawId()];     
-    double jm_y = hasPosRF(MuonPathSLId.wheel(), MuonPathSLId.sector()) ? z_shift-pos_f : z_shift+pos_f;
-    phi  = jm_y;
-    phiB = slope_f;
+  //   DTLayerId SL2_layer2Id(MuonPathSLId, 2);
+  //   double z_shift = shiftthetainfo_[SL2_layer2Id.rawId()];     
+  //   double jm_y = hasPosRF(MuonPathSLId.wheel(), MuonPathSLId.sector()) ? z_shift-pos_f : z_shift+pos_f;
+  //   phi  = jm_y;
+  //   phiB = slope_f;
     
-    //      if(cmssw_for_global_){
-    LocalPoint wire1_in_layer(dtGeo_->layer(SL2_layer2Id)->specificTopology().wirePosition(1), 0, -0.65);
-    GlobalPoint wire1_in_global = dtGeo_->layer(SL2_layer2Id)->toGlobal(wire1_in_layer);
-    LocalPoint wire1_in_sl = dtGeo_->superLayer(MuonPathSLId)->toLocal(wire1_in_global);
-    double x_shift = wire1_in_sl.x();
-    jm_y = (dtGeo_->superLayer(MuonPathSLId)->toGlobal(LocalPoint(double(pos)/(10*pow(2, INCREASED_RES_POS)) + x_shift ,0., 0))).z();
-    //      }
-    phi_cmssw  = jm_y;
-    phiB_cmssw = slope_f;
-  }
+  //   //      if(cmssw_for_global_){
+  //   LocalPoint wire1_in_layer(dtGeo_->layer(SL2_layer2Id)->specificTopology().wirePosition(1), 0, -0.65);
+  //   GlobalPoint wire1_in_global = dtGeo_->layer(SL2_layer2Id)->toGlobal(wire1_in_layer);
+  //   LocalPoint wire1_in_sl = dtGeo_->superLayer(MuonPathSLId)->toLocal(wire1_in_global);
+  //   double x_shift = wire1_in_sl.x();
+  //   jm_y = (dtGeo_->superLayer(MuonPathSLId)->toGlobal(LocalPoint(double(pos)/(10*pow(2, INCREASED_RES_POS)) + x_shift ,0., 0))).z();
+  //   //      }
+  //   phi_cmssw  = jm_y;
+  //   phiB_cmssw = slope_f;
+  // }
 
   metaPrimitives.emplace_back(metaPrimitive({MuonPathSLId.rawId(),
                         double(bx_time),

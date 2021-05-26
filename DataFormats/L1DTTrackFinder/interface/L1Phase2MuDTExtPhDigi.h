@@ -27,9 +27,9 @@
 // C++ Headers --
 //---------------
 
-//              ---------------------
-//              -- Class Interface --
-//              ---------------------
+// ---------------------
+// -- Class Interface --
+// ---------------------
 
 class L1Phase2MuDTExtPhDigi : public L1Phase2MuDTPhDigi {
 public:
