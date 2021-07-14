@@ -30,7 +30,6 @@ public:
 
 private:
   // Private methods
-  // void LoadPattern(std::vector<std::vector<std::vector<int>>>::iterator itPattern);
   void LoadPattern(TString pattern_file_name, int MB_number_input, int SL_shift);
   void FillDigisByLayer(const DTDigiCollection* digis);
   void CleanDigisByLayer();
@@ -49,7 +48,15 @@ private:
   // Private attributes
   // Config variables
   bool debug_;
-  std::string pattern_filename_;
+  //  std::string pattern_filename_;
+  std::string pattern_filename_MB1_left_;
+  std::string pattern_filename_MB1_right_;
+  std::string pattern_filename_MB2_left_;
+  std::string pattern_filename_MB2_right_;
+  std::string pattern_filename_MB3_;
+  std::string pattern_filename_MB4_left_;
+  std::string pattern_filename_MB4_;
+  std::string pattern_filename_MB4_right_;
   int pidx_;
   int minNLayerHits_;
   int allowedVariance_;

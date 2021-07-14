@@ -19,7 +19,15 @@ PseudoBayesGrouping::PseudoBayesGrouping(const ParameterSet& pset, edm::Consumes
     : MotherGrouping(pset, iC) {
   // Obtention of parameters
   debug_ = pset.getUntrackedParameter<bool>("debug");
-  pattern_filename_ = pset.getUntrackedParameter<edm::FileInPath>("pattern_filename").fullPath();
+  //  pattern_filename_ = pset.getUntrackedParameter<edm::FileInPath>("pattern_filename").fullPath();
+  pattern_filename_MB1_left_  = pset.getParameter<edm::FileInPath>("pattern_filename_MB1_left").fullPath();
+  pattern_filename_MB1_right_ = pset.getParameter<edm::FileInPath>("pattern_filename_MB1_right").fullPath();
+  pattern_filename_MB2_left_  = pset.getParameter<edm::FileInPath>("pattern_filename_MB2_left").fullPath();
+  pattern_filename_MB2_right_ = pset.getParameter<edm::FileInPath>("pattern_filename_MB2_right").fullPath();
+  pattern_filename_MB3_       = pset.getParameter<edm::FileInPath>("pattern_filename_MB3").fullPath();
+  pattern_filename_MB4_left_  = pset.getParameter<edm::FileInPath>("pattern_filename_MB4_left").fullPath();
+  pattern_filename_MB4_       = pset.getParameter<edm::FileInPath>("pattern_filename_MB4").fullPath();
+  pattern_filename_MB4_right_ = pset.getParameter<edm::FileInPath>("pattern_filename_MB4_right").fullPath();
   minNLayerHits_ = pset.getUntrackedParameter<int>("minNLayerHits");
   minSingleSLHitsMax_ = pset.getUntrackedParameter<int>("minSingleSLHitsMax");
   minSingleSLHitsMin_ = pset.getUntrackedParameter<int>("minSingleSLHitsMin");
@@ -37,9 +45,6 @@ PseudoBayesGrouping::PseudoBayesGrouping(const ParameterSet& pset, edm::Consumes
 PseudoBayesGrouping::~PseudoBayesGrouping() {
   if (debug_)
     LogDebug("PseudoBayesGrouping") << "PseudoBayesGrouping:: destructor";
-  // for (std::vector<DTPattern*>::iterator pat_it = allPatterns_.begin(); pat_it != allPatterns_.end(); pat_it++) {
-  //   delete (*pat_it);
-  // }
 }
 
 // ============================================================================
@@ -48,8 +53,8 @@ PseudoBayesGrouping::~PseudoBayesGrouping() {
 void PseudoBayesGrouping::initialise(const edm::EventSetup& iEventSetup) {
   if (debug_)
     LogDebug("PseudoBayesGrouping") << "PseudoBayesGrouping::initialiase";
-  if (debug_)
-    LogDebug("PseudoBayesGrouping") << "PseudoBayesGrouping::initialiase using patterns file " << pattern_filename_;
+  // if (debug_)
+  //   LogDebug("PseudoBayesGrouping") << "PseudoBayesGrouping::initialiase using patterns file " << pattern_filename_;
   nPatterns_ = 0;
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -73,22 +78,36 @@ void PseudoBayesGrouping::initialise(const edm::EventSetup& iEventSetup) {
   //  cout << "Initializing patterns" << endl;
 
   // Currently hard-coded. To be fixed
-  TString patterns_folder = "/afs/cern.ch/user/n/ntrevisa/public/Patterns_h287mm/";
+  //  TString patterns_folder = "/afs/cern.ch/user/n/ntrevisa/public/Patterns_h287mm/";
   // TString patterns_folder = "L1Trigger/DTTriggerPhase2/data/";
+
+  // // Load all patterns
+  // // MB1
+  // LoadPattern(patterns_folder + "createdPatterns_MB1_left.root",  0, 0);
+  // LoadPattern(patterns_folder + "createdPatterns_MB1_right.root", 0, 2);
+  // // MB2
+  // LoadPattern(patterns_folder + "createdPatterns_MB2_left.root",  1, 0);
+  // LoadPattern(patterns_folder + "createdPatterns_MB2_right.root", 1, 2);
+  // // MB3
+  // LoadPattern(patterns_folder + "createdPatterns_MB3.root",       2, 1);
+  // // MB4
+  // LoadPattern(patterns_folder + "createdPatterns_MB4_left.root",  3, 0);
+  // LoadPattern(patterns_folder + "createdPatterns_MB4.root",       3, 1);
+  // LoadPattern(patterns_folder + "createdPatterns_MB4_right.root", 3, 2);
 
   // Load all patterns
   // MB1
-  LoadPattern(patterns_folder + "createdPatterns_MB1_left.root",  0, 0);
-  LoadPattern(patterns_folder + "createdPatterns_MB1_right.root", 0, 2);
+  LoadPattern(TString(pattern_filename_MB1_left_),  0, 0);
+  LoadPattern(TString(pattern_filename_MB1_right_), 0, 2);
   // MB2
-  LoadPattern(patterns_folder + "createdPatterns_MB2_left.root",  1, 0);
-  LoadPattern(patterns_folder + "createdPatterns_MB2_right.root", 1, 2);
+  LoadPattern(TString(pattern_filename_MB2_left_),  1, 0);
+  LoadPattern(TString(pattern_filename_MB2_right_), 1, 2);
   // MB3
-  LoadPattern(patterns_folder + "createdPatterns_MB3.root",       2, 1);
+  LoadPattern(TString(pattern_filename_MB3_),       2, 1);
   // MB4
-  LoadPattern(patterns_folder + "createdPatterns_MB4_left.root",  3, 0);
-  LoadPattern(patterns_folder + "createdPatterns_MB4.root",       3, 1);
-  LoadPattern(patterns_folder + "createdPatterns_MB4_right.root", 3, 2);
+  LoadPattern(TString(pattern_filename_MB4_left_),  3, 0);
+  LoadPattern(TString(pattern_filename_MB4_),       3, 1);
+  LoadPattern(TString(pattern_filename_MB4_right_), 3, 2);
 
   prelimMatches_ = std::make_unique<CandidateGroupPtrs>();
   allMatches_ = std::make_unique<CandidateGroupPtrs>();
